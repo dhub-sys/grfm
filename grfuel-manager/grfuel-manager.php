@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GRFuel Manager
  * Description: Fuel order forms, daily product prices, submissions, exports and order notifications for YOOtheme.
- * Version: 4.3.17
+ * Version: 4.3.18
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Dazzlink
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class SFV_Plugin {
-    private const VERSION = '4.3.17';
+    private const VERSION = '4.3.18';
     private const PRODUCT_NAME = 'GRFuel Manager';
     private const TAGLINE = 'Fuel pricing and orders, under control.';
     private const CPT = 'sfv_form';
@@ -23,7 +23,10 @@ final class SFV_Plugin {
     private const DB_VERSION = '1.1';
     private const DB_OPTION = 'sfv_db_version';
     private const DATA_SNAPSHOT_OPTION = 'grfuel_persistent_catalog_snapshot';
-    private const CAPABILITY = 'manage_options';
+    private const CAPABILITY = 'grfuel_manage';
+    private const OPERATOR_ROLE = 'grfuel_operator';
+    private const ROLES_VERSION = '1';
+    private const ROLES_OPTION = 'grfuel_roles_version';
 
     public static function boot(): void {
         $plugin = new self();
@@ -74,6 +77,53 @@ final class SFV_Plugin {
         add_filter( 'enter_title_here', array( $plugin, 'form_title_placeholder' ), 10, 2 );
         add_filter( 'redirect_post_location', array( $plugin, 'redirect_form_after_save' ), 10, 2 );
         add_action( 'manage_' . self::CPT . '_posts_custom_column', array( $plugin, 'form_column_content' ), 10, 2 );
+        add_filter( 'user_has_cap', array( $plugin, 'grant_admin_caps' ) );
+        add_filter( 'option_page_capability_sfv_settings_group', array( $plugin, 'settings_capability' ) );
+        add_filter( 'login_redirect', array( $plugin, 'operator_login_redirect' ), 10, 3 );
+    }
+
+    // Όλες οι δυνατότητες του Manager: η βασική και όσες χρειάζεται ο Form Builder (custom post type).
+    private function manager_caps(): array {
+        return array(
+            self::CAPABILITY,
+            'edit_grfuel_forms', 'edit_others_grfuel_forms', 'edit_published_grfuel_forms', 'edit_private_grfuel_forms',
+            'publish_grfuel_forms', 'read_private_grfuel_forms',
+            'delete_grfuel_forms', 'delete_others_grfuel_forms', 'delete_published_grfuel_forms', 'delete_private_grfuel_forms',
+        );
+    }
+
+    // Οι administrators (manage_options) διατηρούν πάντα πλήρη πρόσβαση, χωρίς αλλαγή στον ρόλο τους.
+    public function grant_admin_caps( array $allcaps ): array {
+        if ( ! empty( $allcaps['manage_options'] ) ) {
+            foreach ( $this->manager_caps() as $cap ) $allcaps[ $cap ] = true;
+        }
+        return $allcaps;
+    }
+
+    public function settings_capability(): string {
+        return self::CAPABILITY;
+    }
+
+    private function sync_roles(): void {
+        $caps = array( 'read' => true, 'upload_files' => true );
+        foreach ( $this->manager_caps() as $cap ) $caps[ $cap ] = true;
+        $role = get_role( self::OPERATOR_ROLE );
+        if ( ! $role ) {
+            add_role( self::OPERATOR_ROLE, 'GRFuel Operator', $caps );
+        } else {
+            foreach ( $caps as $cap => $grant ) $role->add_cap( $cap, $grant );
+        }
+        update_option( self::ROLES_OPTION, self::ROLES_VERSION, false );
+    }
+
+    public function operator_login_redirect( $redirect_to, $requested, $user ) {
+        if ( $user instanceof WP_User && in_array( self::OPERATOR_ROLE, (array) $user->roles, true ) && ! user_can( $user, 'manage_options' ) ) {
+            $default = admin_url();
+            if ( '' === (string) $requested || $default === $redirect_to || admin_url( 'index.php' ) === $redirect_to ) {
+                return admin_url( 'admin.php?page=grfuel-manager' );
+            }
+        }
+        return $redirect_to;
     }
 
     public function activate(): void {
@@ -82,6 +132,7 @@ final class SFV_Plugin {
         $this->create_table();
         $this->restore_catalog_snapshot_if_needed();
         update_option( self::DB_OPTION, self::DB_VERSION, false );
+        $this->sync_roles();
     }
 
     public function maybe_upgrade(): void {
@@ -90,6 +141,9 @@ final class SFV_Plugin {
             $this->create_table();
             $this->restore_catalog_snapshot_if_needed();
             update_option( self::DB_OPTION, self::DB_VERSION, false );
+        }
+        if ( self::ROLES_VERSION !== (string) get_option( self::ROLES_OPTION, '' ) ) {
+            $this->sync_roles();
         }
         $this->snapshot_catalog();
     }
@@ -161,7 +215,7 @@ final class SFV_Plugin {
                 'menu_icon' => $this->admin_icon(),
                 'supports' => array( 'title' ),
                 'map_meta_cap' => true,
-                'capability_type' => 'post',
+                'capability_type' => array( 'grfuel_form', 'grfuel_forms' ),
             )
         );
     }
@@ -621,7 +675,7 @@ final class SFV_Plugin {
         if ( 'turnstile' === $type ) {
             if ( ! empty( $settings['site_key'] ) && ! empty( $settings['secret_key'] ) ) {
                 printf( '<div class="sfv-field %1$s"><div class="cf-turnstile" data-sitekey="%2$s" data-action="sfv_form_%3$d"></div></div>', esc_attr( $classes ), esc_attr( $settings['site_key'] ), absint( $form_id ) );
-            } elseif ( current_user_can( 'manage_options' ) ) {
+            } elseif ( current_user_can( self::CAPABILITY ) ) {
                 printf( '<div class="sfv-field %1$s"><div class="uk-alert-warning" uk-alert>%2$s</div></div>', esc_attr( $classes ), esc_html__( 'Turnstile keys are not configured.', 'secure-form-vault' ) );
             }
             return;
@@ -2249,7 +2303,7 @@ final class SFV_Plugin {
             <?php $this->admin_nav( 'changelog' ); ?>
             <?php $this->section_intro( 'Changelog', 'Όλες οι αλλαγές και οι βελτιώσεις του GRFuel Manager ανά έκδοση.' ); ?>
             <main class="sfv-panel sfv-docs-content grfuel-changelog-content">
-                <section class="grfuel-changelog-shell"><header class="grfuel-changelog-hero"><span class="dashicons dashicons-backup"></span><div><small>GRFuel Manager</small><h2>Ιστορικό εκδόσεων</h2><p>Όλες οι βελτιώσεις και οι διορθώσεις του manager, οργανωμένες ανά έκδοση.</p></div></header><div class="grfuel-changelog-timeline"><article class="grfuel-changelog-release is-latest"><div class="grfuel-changelog-version"><strong>4.3.7</strong><span>Τρέχουσα έκδοση</span></div><ul><li>Επαναφορά όλων των αλλαγών έως την 4.3.6 πάνω στην ασφαλή βάση, χωρίς να επηρεάζονται τα Acrobat PDF icons.</li><li>Τα τελευταία έξι πεδία του PDF εμφανίζονται με σταθερή σειρά: Διεύθυνση, Τηλέφωνο, Email, Επιθυμητή ημερομηνία, Ποσότητα, Σύνολο παραγγελίας.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.3</strong></div><ul><li>Διορθώθηκε οριστικά το PDF ώστε να αφαιρεί την αποδοχή Πολιτικής Απορρήτου με έλεγχο πεδίου, label και αποθηκευμένης τιμής.</li><li>Το Σύνολο παραγγελίας εμφανίζεται στη θέση της αποδοχής και υπολογίζεται εκ νέου όταν λείπει από παλαιότερη παραγγελία.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.2</strong></div><ul><li>Πρώτη προσαρμογή της διάταξης PDF για απόκρυψη πολιτικής και μεταφορά του συνόλου.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.1</strong></div><ul><li>Προστέθηκε υδατογράφημα PNG/SVG στο PDF Branding με αποθηκευόμενο opacity και κεντραρισμένη διάταξη 3/4 × 3/5 της σελίδας.</li><li>Το εικονίδιο PDF στις παραγγελίες αντικαταστάθηκε με το κλασικό σύμβολο Acrobat.</li><li>Το Changelog ανασχεδιάστηκε σύμφωνα με τη διάταξη του Stavros Floral Studio Suite.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.0</strong></div><ul><li>Προστέθηκε admin-only mobile push μέσω OneSignal, με σύνδεση συσκευής, δοκιμαστική αποστολή και αυτόματη ειδοποίηση σε κάθε νέα παραγγελία.</li><li>Τα push εμφανίζουν μόνο ασφαλή στοιχεία παραγγελίας και το OneSignal API key παραμένει αποκλειστικά στον WordPress server.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.8</strong></div><ul><li>Διορθώθηκε το οριζόντιο overflow στο mobile ώστε ο manager, το sticky header και όλα τα panels να μην ξεπερνούν το διαθέσιμο πλάτος της οθόνης.</li><li>Φορτώνεται επίσημα η γραμματοσειρά Geom από Google Fonts και εφαρμόζεται σε ολόκληρο το περιβάλλον του manager.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.7</strong></div><ul><li>Διορθώθηκε το count-up animation των αριθμητικών τιμών στα tooltips των γραφημάτων κατά το hover ή το touch.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.6</strong></div><ul><li>Το mobile header τοποθετήθηκε στο απολύτως επάνω άκρο της οθόνης, ανεξάρτητα από την WordPress admin bar.</li><li>Το off-canvas sidebar καλύπτει πλέον ολόκληρο το διαθέσιμο ύψος της συσκευής, με υποστήριξη dynamic viewport και safe areas.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.5</strong></div><ul><li>Το tooltip των γραφημάτων ακολουθεί πλέον το animation του reference plugin, με ομαλή εμφάνιση και animated μετάβαση της αριθμητικής τιμής.</li><li>Το mobile menu ανασχεδιάστηκε με sticky επάνω μπάρα, burger αριστερά, κεντραρισμένο λογότυπο και ξεχωριστό κουμπί κλεισίματος μέσα στο off-canvas sidebar.</li><li>Οι κύκλοι του Changelog κεντραρίστηκαν επάνω στην κάθετη γραμμή και η έκδοση εμφανίζεται ως απλό κείμενο δεξιά από κάθε κύκλο.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.4</strong></div><ul><li>Το off-canvas sidebar στο κινητό εμφανίζει πλέον πάντα τόσο τα εικονίδια όσο και τους τίτλους των επιλογών.</li><li>Διορθώθηκε η θέση και το responsive μέγεθος του burger button ώστε να παραμένει πλήρως μέσα στην οθόνη.</li><li>Το Changelog έγινε πλήρους πλάτους, ευθυγραμμισμένο με το πλαίσιο τίτλου, και ανανεώθηκε αισθητικά.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.3</strong></div><ul><li>Διορθώθηκε η δυναμική εμφάνιση πεδίων στη Νέα Παραγγελία ώστε να ακολουθεί πιστά τα dependencies της επιλεγμένης φόρμας.</li><li>Τα υποχρεωτικά πεδία ενεργοποιούνται μόνο όταν είναι ορατά.</li><li>Η διάταξη πεδίων του admin χρησιμοποιεί ανεξάρτητο responsive grid και όχι classes του frontend theme.</li><li>Προστέθηκε sticky mobile header με λογότυπο και burger menu.</li><li>Ανασχεδιάστηκε αισθητικά η σελίδα Changelog.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.2</strong></div><ul><li>Προστέθηκε ομαλό stagger animation στους χαρακτήρες του tooltip των γραφημάτων.</li><li>Το Changelog μεταφέρθηκε σε ανεξάρτητη σελίδα και εμφανίζεται ως ξεχωριστή επιλογή στο sidebar.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.1</strong></div><ul><li>Βελτιώθηκε η στοίχιση και η εμφάνιση του footer στο sidebar.</li><li>Μόνο η λέξη Dazzlink αποτελεί σύνδεσμο, χωρίς background στο hover.</li><li>Η Έξοδος κεντραρίστηκε και στο hover εφαρμόζει μόνο διακριτικό scale up.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.0</strong></div><ul><li>Μη καταστροφικά database migrations και προστασία προϊόντων, τιμών ημέρας και ιστορικού κατά τα updates.</li><li>Πλήρως responsive manager με burger menu και off-canvas sidebar.</li><li>Νέο footer sidebar με Dazzlink link και ασφαλές WordPress logout.</li><li>Η γραμματοσειρά του manager ορίστηκε σε Geom με fallback στη γραμματοσειρά της σελίδας.</li><li>Διαφανές/inherit φόντο για τα δημόσια γραφήματα και προαιρετικό light mode.</li><li>Νέα Παραγγελία από admin με δυναμικά πεδία, required validation και dependencies από τον Form Builder.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.4</strong></div><ul><li>Επανήλθε ο οπτικός επιλογέας χρώματος στις ρυθμίσεις εμφάνισης της φόρμας.</li><li>Προστέθηκε ξεχωριστός slider opacity, με αυτόματη αποθήκευση σε μορφή RGBA.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.3</strong></div><ul><li>Προστέθηκε υποστήριξη χρωμάτων RGBA με opacity στις ρυθμίσεις εμφάνισης των φορμών.</li><li>Προστέθηκε Import μεμονωμένης φόρμας από το JSON αρχείο που δημιουργεί το αντίστοιχο Export.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.2</strong></div><ul><li>Αφαιρέθηκε το ανεπιθύμητο οριζόντιο scroll από το κάτω μέρος του sidebar.</li><li>Το sidebar χρησιμοποιεί πλέον αποκλειστικά κατακόρυφη κύλιση όταν το περιεχόμενο ξεπερνά το διαθέσιμο ύψος.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.1</strong></div><ul><li>Προστέθηκε κουμπί Export σε κάθε φόρμα για λήψη μεμονωμένου JSON backup της διαμόρφωσής της.</li><li>Το αρχείο περιλαμβάνει πεδία, dependencies, responsive πλάτη και ρυθμίσεις απάντησης μετά την υποβολή, με checksum ακεραιότητας.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.0</strong></div><ul><li>Προστέθηκε πλήρες τοπικό Backup / Restore για ρυθμίσεις, φόρμες, τιμές, ιστορικό και παραγγελίες.</li><li>Τα backup αρχεία ελέγχονται με checksum πριν από την επαναφορά και δεν αποθηκεύονται στον server.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.4</strong></div><ul><li>Διορθώθηκε η θέση του κουμπιού σύμπτυξης όταν το sidebar είναι κλειστό, ώστε να ακολουθεί ακριβώς την ίδια στήλη στοίχισης με τα υπόλοιπα εικονίδια.</li><li>Αφαιρέθηκε κάθε παλιό absolute positioning και μετατόπιση του κουμπιού στη συμπτυγμένη προβολή.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.3</strong></div><ul><li>Διορθώθηκε οριστικά η οριζόντια στοίχιση του εικονιδίου σύμπτυξης με τα υπόλοιπα εικονίδια όταν το sidebar είναι κλειστό.</li><li>Το κουμπί σύμπτυξης παραμένει πλήρως διαφανές σε hover και focus, χωρίς background.</li><li>Ενημερώθηκε το ενσωματωμένο changelog της τεκμηρίωσης με τα builds 4.0.2 και 4.0.3.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.2</strong></div><ul><li>Βελτιώθηκε η στοίχιση του εικονιδίου σύμπτυξης στη συμπτυγμένη προβολή.</li><li>Αφαιρέθηκε το background στο hover και στο focus του κουμπιού σύμπτυξης.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.1</strong></div><ul><li>Βελτιώθηκε η συμπτυγμένη εμφάνιση του sidebar και το ενεργό εικονίδιο.</li><li>Ανασχεδιάστηκε το κουμπί σύμπτυξης με κίνηση κατεύθυνσης και εμφάνιση της ετικέτας στο hover.</li><li>Ενοποιήθηκε το πλάτος της κεφαλίδας του Form Builder με τα υπόλοιπα panels.</li><li>Προστέθηκε ορατή ενότητα changelog στην τεκμηρίωση.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.0</strong></div><ul><li>Πρώτη σταθερή έκδοση του GRFuel Manager.</li><li>Form Builder με responsive πλάτη, dependencies και εξαρτώμενα πεδία τόπου παράδοσης.</li><li>Διαχείριση παραγγελιών, XLSX/PDF exports, ειδοποιήσεις και μη αναγνωσμένο badge.</li><li>Τιμές Ημέρας, ιστορικό και ξεχωριστά desktop/mobile γραφήματα.</li></ul></article></div><p class="grfuel-changelog-note">Το πλήρες ιστορικό αλλαγών περιλαμβάνεται επίσης στο αρχείο <code>CHANGELOG.md</code> του plugin.</p></section>
+                <section class="grfuel-changelog-shell"><header class="grfuel-changelog-hero"><span class="dashicons dashicons-backup"></span><div><small>GRFuel Manager</small><h2>Ιστορικό εκδόσεων</h2><p>Όλες οι βελτιώσεις και οι διορθώσεις του manager, οργανωμένες ανά έκδοση.</p></div></header><div class="grfuel-changelog-timeline"><article class="grfuel-changelog-release is-latest"><div class="grfuel-changelog-version"><strong>4.3.18</strong><span>Τρέχουσα έκδοση</span></div><ul><li>Νέος ρόλος «GRFuel Operator» με πλήρη πρόσβαση στον Manager χωρίς δικαιώματα administrator στο WordPress.</li><li>Οι administrators διατηρούν αυτόματα την πρόσβασή τους.</li><li>Διορθώθηκε η διαγραφή μεμονωμένης παραγγελίας από τη λίστα Παραγγελιών.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.7</strong></div><ul><li>Επαναφορά όλων των αλλαγών έως την 4.3.6 πάνω στην ασφαλή βάση, χωρίς να επηρεάζονται τα Acrobat PDF icons.</li><li>Τα τελευταία έξι πεδία του PDF εμφανίζονται με σταθερή σειρά: Διεύθυνση, Τηλέφωνο, Email, Επιθυμητή ημερομηνία, Ποσότητα, Σύνολο παραγγελίας.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.3</strong></div><ul><li>Διορθώθηκε οριστικά το PDF ώστε να αφαιρεί την αποδοχή Πολιτικής Απορρήτου με έλεγχο πεδίου, label και αποθηκευμένης τιμής.</li><li>Το Σύνολο παραγγελίας εμφανίζεται στη θέση της αποδοχής και υπολογίζεται εκ νέου όταν λείπει από παλαιότερη παραγγελία.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.2</strong></div><ul><li>Πρώτη προσαρμογή της διάταξης PDF για απόκρυψη πολιτικής και μεταφορά του συνόλου.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.1</strong></div><ul><li>Προστέθηκε υδατογράφημα PNG/SVG στο PDF Branding με αποθηκευόμενο opacity και κεντραρισμένη διάταξη 3/4 × 3/5 της σελίδας.</li><li>Το εικονίδιο PDF στις παραγγελίες αντικαταστάθηκε με το κλασικό σύμβολο Acrobat.</li><li>Το Changelog ανασχεδιάστηκε σύμφωνα με τη διάταξη του Stavros Floral Studio Suite.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.0</strong></div><ul><li>Προστέθηκε admin-only mobile push μέσω OneSignal, με σύνδεση συσκευής, δοκιμαστική αποστολή και αυτόματη ειδοποίηση σε κάθε νέα παραγγελία.</li><li>Τα push εμφανίζουν μόνο ασφαλή στοιχεία παραγγελίας και το OneSignal API key παραμένει αποκλειστικά στον WordPress server.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.8</strong></div><ul><li>Διορθώθηκε το οριζόντιο overflow στο mobile ώστε ο manager, το sticky header και όλα τα panels να μην ξεπερνούν το διαθέσιμο πλάτος της οθόνης.</li><li>Φορτώνεται επίσημα η γραμματοσειρά Geom από Google Fonts και εφαρμόζεται σε ολόκληρο το περιβάλλον του manager.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.7</strong></div><ul><li>Διορθώθηκε το count-up animation των αριθμητικών τιμών στα tooltips των γραφημάτων κατά το hover ή το touch.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.6</strong></div><ul><li>Το mobile header τοποθετήθηκε στο απολύτως επάνω άκρο της οθόνης, ανεξάρτητα από την WordPress admin bar.</li><li>Το off-canvas sidebar καλύπτει πλέον ολόκληρο το διαθέσιμο ύψος της συσκευής, με υποστήριξη dynamic viewport και safe areas.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.5</strong></div><ul><li>Το tooltip των γραφημάτων ακολουθεί πλέον το animation του reference plugin, με ομαλή εμφάνιση και animated μετάβαση της αριθμητικής τιμής.</li><li>Το mobile menu ανασχεδιάστηκε με sticky επάνω μπάρα, burger αριστερά, κεντραρισμένο λογότυπο και ξεχωριστό κουμπί κλεισίματος μέσα στο off-canvas sidebar.</li><li>Οι κύκλοι του Changelog κεντραρίστηκαν επάνω στην κάθετη γραμμή και η έκδοση εμφανίζεται ως απλό κείμενο δεξιά από κάθε κύκλο.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.4</strong></div><ul><li>Το off-canvas sidebar στο κινητό εμφανίζει πλέον πάντα τόσο τα εικονίδια όσο και τους τίτλους των επιλογών.</li><li>Διορθώθηκε η θέση και το responsive μέγεθος του burger button ώστε να παραμένει πλήρως μέσα στην οθόνη.</li><li>Το Changelog έγινε πλήρους πλάτους, ευθυγραμμισμένο με το πλαίσιο τίτλου, και ανανεώθηκε αισθητικά.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.3</strong></div><ul><li>Διορθώθηκε η δυναμική εμφάνιση πεδίων στη Νέα Παραγγελία ώστε να ακολουθεί πιστά τα dependencies της επιλεγμένης φόρμας.</li><li>Τα υποχρεωτικά πεδία ενεργοποιούνται μόνο όταν είναι ορατά.</li><li>Η διάταξη πεδίων του admin χρησιμοποιεί ανεξάρτητο responsive grid και όχι classes του frontend theme.</li><li>Προστέθηκε sticky mobile header με λογότυπο και burger menu.</li><li>Ανασχεδιάστηκε αισθητικά η σελίδα Changelog.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.2</strong></div><ul><li>Προστέθηκε ομαλό stagger animation στους χαρακτήρες του tooltip των γραφημάτων.</li><li>Το Changelog μεταφέρθηκε σε ανεξάρτητη σελίδα και εμφανίζεται ως ξεχωριστή επιλογή στο sidebar.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.1</strong></div><ul><li>Βελτιώθηκε η στοίχιση και η εμφάνιση του footer στο sidebar.</li><li>Μόνο η λέξη Dazzlink αποτελεί σύνδεσμο, χωρίς background στο hover.</li><li>Η Έξοδος κεντραρίστηκε και στο hover εφαρμόζει μόνο διακριτικό scale up.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.0</strong></div><ul><li>Μη καταστροφικά database migrations και προστασία προϊόντων, τιμών ημέρας και ιστορικού κατά τα updates.</li><li>Πλήρως responsive manager με burger menu και off-canvas sidebar.</li><li>Νέο footer sidebar με Dazzlink link και ασφαλές WordPress logout.</li><li>Η γραμματοσειρά του manager ορίστηκε σε Geom με fallback στη γραμματοσειρά της σελίδας.</li><li>Διαφανές/inherit φόντο για τα δημόσια γραφήματα και προαιρετικό light mode.</li><li>Νέα Παραγγελία από admin με δυναμικά πεδία, required validation και dependencies από τον Form Builder.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.4</strong></div><ul><li>Επανήλθε ο οπτικός επιλογέας χρώματος στις ρυθμίσεις εμφάνισης της φόρμας.</li><li>Προστέθηκε ξεχωριστός slider opacity, με αυτόματη αποθήκευση σε μορφή RGBA.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.3</strong></div><ul><li>Προστέθηκε υποστήριξη χρωμάτων RGBA με opacity στις ρυθμίσεις εμφάνισης των φορμών.</li><li>Προστέθηκε Import μεμονωμένης φόρμας από το JSON αρχείο που δημιουργεί το αντίστοιχο Export.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.2</strong></div><ul><li>Αφαιρέθηκε το ανεπιθύμητο οριζόντιο scroll από το κάτω μέρος του sidebar.</li><li>Το sidebar χρησιμοποιεί πλέον αποκλειστικά κατακόρυφη κύλιση όταν το περιεχόμενο ξεπερνά το διαθέσιμο ύψος.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.1</strong></div><ul><li>Προστέθηκε κουμπί Export σε κάθε φόρμα για λήψη μεμονωμένου JSON backup της διαμόρφωσής της.</li><li>Το αρχείο περιλαμβάνει πεδία, dependencies, responsive πλάτη και ρυθμίσεις απάντησης μετά την υποβολή, με checksum ακεραιότητας.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.0</strong></div><ul><li>Προστέθηκε πλήρες τοπικό Backup / Restore για ρυθμίσεις, φόρμες, τιμές, ιστορικό και παραγγελίες.</li><li>Τα backup αρχεία ελέγχονται με checksum πριν από την επαναφορά και δεν αποθηκεύονται στον server.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.4</strong></div><ul><li>Διορθώθηκε η θέση του κουμπιού σύμπτυξης όταν το sidebar είναι κλειστό, ώστε να ακολουθεί ακριβώς την ίδια στήλη στοίχισης με τα υπόλοιπα εικονίδια.</li><li>Αφαιρέθηκε κάθε παλιό absolute positioning και μετατόπιση του κουμπιού στη συμπτυγμένη προβολή.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.3</strong></div><ul><li>Διορθώθηκε οριστικά η οριζόντια στοίχιση του εικονιδίου σύμπτυξης με τα υπόλοιπα εικονίδια όταν το sidebar είναι κλειστό.</li><li>Το κουμπί σύμπτυξης παραμένει πλήρως διαφανές σε hover και focus, χωρίς background.</li><li>Ενημερώθηκε το ενσωματωμένο changelog της τεκμηρίωσης με τα builds 4.0.2 και 4.0.3.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.2</strong></div><ul><li>Βελτιώθηκε η στοίχιση του εικονιδίου σύμπτυξης στη συμπτυγμένη προβολή.</li><li>Αφαιρέθηκε το background στο hover και στο focus του κουμπιού σύμπτυξης.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.1</strong></div><ul><li>Βελτιώθηκε η συμπτυγμένη εμφάνιση του sidebar και το ενεργό εικονίδιο.</li><li>Ανασχεδιάστηκε το κουμπί σύμπτυξης με κίνηση κατεύθυνσης και εμφάνιση της ετικέτας στο hover.</li><li>Ενοποιήθηκε το πλάτος της κεφαλίδας του Form Builder με τα υπόλοιπα panels.</li><li>Προστέθηκε ορατή ενότητα changelog στην τεκμηρίωση.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.0</strong></div><ul><li>Πρώτη σταθερή έκδοση του GRFuel Manager.</li><li>Form Builder με responsive πλάτη, dependencies και εξαρτώμενα πεδία τόπου παράδοσης.</li><li>Διαχείριση παραγγελιών, XLSX/PDF exports, ειδοποιήσεις και μη αναγνωσμένο badge.</li><li>Τιμές Ημέρας, ιστορικό και ξεχωριστά desktop/mobile γραφήματα.</li></ul></article></div><p class="grfuel-changelog-note">Το πλήρες ιστορικό αλλαγών περιλαμβάνεται επίσης στο αρχείο <code>CHANGELOG.md</code> του plugin.</p></section>
             </main>
         </div>
         <?php
@@ -2751,6 +2805,7 @@ final class SFV_Plugin {
             <?php
             $maintenance_status = sanitize_key( wp_unslash( $_GET['sfv_status'] ?? '' ) );
             $maintenance_messages = array(
+                'deleted' => array( 'success', __( 'Η παραγγελία διαγράφηκε οριστικά.', 'secure-form-vault' ) ),
                 'cleared' => array( 'success', __( 'Όλες οι υποβολές διαγράφηκαν οριστικά.', 'secure-form-vault' ) ),
                 'reset' => array( 'success', __( 'Η αρίθμηση υποβολών επαναφέρθηκε. Η επόμενη υποβολή θα έχει ID 1.', 'secure-form-vault' ) ),
                 'reset_blocked' => array( 'warning', __( 'Η επαναφορά ID επιτρέπεται μόνο όταν δεν υπάρχουν αποθηκευμένες υποβολές.', 'secure-form-vault' ) ),
@@ -2932,6 +2987,17 @@ if('__order_total'===(string)$key||str_contains($display_probe,'συνολο')||
 $full=strlen($value)>85||str_contains($value,"\n");?><div class="answer<?php echo $full?' full':''; ?>"><dt><?php echo esc_html($label); ?></dt><dd><?php echo nl2br(esc_html($value)); ?></dd></div><?php endforeach; ?></dl>
 <footer class="footer"><span><?php echo esc_html(sprintf(__('%1$s · Δημιουργήθηκε με GRFuel Manager','secure-form-vault'),$pdf_brand)); ?></span></footer></section>
 <?php endforeach; ?></main><script>window.addEventListener('load',function(){var run=function(){setTimeout(function(){window.print()},120)};if(document.fonts&&document.fonts.ready){document.fonts.ready.then(run).catch(run);}else{run();}});</script></body></html><?php exit;
+    }
+
+    public function delete_submission(): void {
+        if ( ! current_user_can( self::CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
+        $id = absint( $_GET['id'] ?? 0 );
+        check_admin_referer( 'sfv_delete_' . $id );
+        global $wpdb;
+        $result = $id ? $wpdb->delete( $this->table(), array( 'id' => $id ), array( '%d' ) ) : false;
+        $status = $result ? 'deleted' : 'maintenance_error';
+        wp_safe_redirect( add_query_arg( 'sfv_status', $status, wp_get_referer() ?: admin_url( 'admin.php?page=sfv-submissions' ) ) );
+        exit;
     }
 
     public function clear_submissions(): void {

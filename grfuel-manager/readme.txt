@@ -3,7 +3,7 @@ Contributors: Dazzlink
 Tags: forms, yootheme, uikit, turnstile, excel, submissions
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 4.5.0
+Stable tag: 4.5.1
 License: GPLv2 or later
 
 Ασφαλής visual form builder για WordPress και YOOtheme/UIkit, με αποθήκευση υποβολών, Cloudflare Turnstile και εξαγωγές XLSX/XML.
@@ -40,6 +40,12 @@ License: GPLv2 or later
 Από την οθόνη Υποβολές & Export μπορούμε να διαγράψουμε οριστικά όλες τις αποθηκευμένες υποβολές. Η επαναφορά του submission ID στο 1 επιτρέπεται μόνο όταν ο πίνακας είναι άδειος. Πριν από μαζική διαγραφή συνιστάται export ή άλλο αντίγραφο ασφαλείας, ανάλογα με την πολιτική διατήρησης δεδομένων.
 
 == Changelog ==
+
+= 4.5.1 =
+* Ο GRFuel Operator αποθηκεύει και δημοσιεύει φόρμες από τον Form Builder.
+* Ο GRFuel Operator επιλέγει λογότυπο και υδατογράφημα PDF από τη βιβλιοθήκη πολυμέσων.
+* Διορθώθηκε κρίσιμο σφάλμα στη Νέα Παραγγελία με φόρμα χωρίς αποθηκευμένα πεδία.
+* Η σελίδα /grfuel-manager/ επιστρέφει HTTP 200.
 
 = 4.5.0 =
 * Το floating κουμπί συνεδρίας εμφανίζει ζωντανή αντίστροφη μέτρηση και επιστρέφει στην πλήρη διάρκεια μετά την ανανέωση.

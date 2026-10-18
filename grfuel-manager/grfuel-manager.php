@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GRFuel Manager
  * Description: Fuel order forms, daily product prices, submissions, exports and order notifications for YOOtheme.
- * Version: 4.5.0
+ * Version: 4.5.1
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Dazzlink
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class SFV_Plugin {
-    private const VERSION = '4.5.0';
+    private const VERSION = '4.5.1';
     private const PRODUCT_NAME = 'GRFuel Manager';
     private const TAGLINE = 'Fuel pricing and orders, under control.';
     private const CPT = 'sfv_form';
@@ -168,8 +168,8 @@ final class SFV_Plugin {
     }
 
     private function sync_manager_roles( bool $force = false ): void {
-        if ( ! $force && '1' === (string) get_option( self::ROLE_VERSION_OPTION, '' ) ) return;
-        $caps = array_fill_keys( array_merge( array( 'read', self::CAPABILITY ), $this->manager_form_capabilities() ), true );
+        if ( ! $force && '2' === (string) get_option( self::ROLE_VERSION_OPTION, '' ) ) return;
+        $caps = array_fill_keys( array_merge( array( 'read', 'upload_files', self::CAPABILITY ), $this->manager_form_capabilities() ), true );
         $operator = get_role( self::OPERATOR_ROLE );
         if ( ! $operator ) {
             add_role( self::OPERATOR_ROLE, 'GRFuel Operator', $caps );
@@ -186,7 +186,7 @@ final class SFV_Plugin {
             $administrator->add_cap( self::CAPABILITY );
             foreach ( $this->manager_form_capabilities() as $cap ) $administrator->add_cap( $cap );
         }
-        update_option( self::ROLE_VERSION_OPTION, '1', false );
+        update_option( self::ROLE_VERSION_OPTION, '2', false );
     }
 
     private function table(): string {
@@ -293,6 +293,7 @@ final class SFV_Plugin {
         }
         $this->send_private_response_headers();
         $src = admin_url( 'admin.php?page=grfuel-manager&grfuel_portal=1' );
+        status_header( 200 );
         ?><!doctype html><html lang="el"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>GRFuel Manager</title><style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#f3f6fb}iframe{display:block;width:100%;height:100%;border:0}</style></head><body><iframe title="GRFuel Manager" src="<?php echo esc_url( $src ); ?>"></iframe></body></html><?php
         exit;
     }
@@ -410,7 +411,7 @@ final class SFV_Plugin {
             $page = sanitize_key( wp_unslash( $_GET['page'] ?? '' ) );
             $manager_pages = array( 'grfuel-manager', 'sfv-submissions', 'grfuel-new-order', 'grfuel-forms', 'grfuel-prices', 'grfuel-users', 'sfv-settings', 'grfuel-backup', 'sfv-documentation', 'grfuel-changelog' );
             $post_type = sanitize_key( wp_unslash( $_GET['post_type'] ?? '' ) );
-            if ( 'post.php' === $pagenow ) $post_type = get_post_type( absint( $_GET['post'] ?? 0 ) ) ?: '';
+            if ( 'post.php' === $pagenow ) $post_type = get_post_type( $this->requested_post_id() ) ?: '';
             $is_manager = ( 'admin.php' === $pagenow && in_array( $page, $manager_pages, true ) ) || ( in_array( $pagenow, array( 'post.php', 'post-new.php', 'edit.php' ), true ) && self::CPT === $post_type );
             if ( ! $is_manager ) return;
             if ( $this->otp_session_valid( $user ) ) return;
@@ -433,18 +434,22 @@ final class SFV_Plugin {
     public function restrict_operator_admin(): void {
         if ( ! is_user_logged_in() || current_user_can( self::USER_ADMIN_CAPABILITY ) || ! current_user_can( self::CAPABILITY ) ) return;
         global $pagenow;
-        if ( in_array( $pagenow, array( 'admin-ajax.php', 'admin-post.php' ), true ) ) return;
+        if ( in_array( $pagenow, array( 'admin-ajax.php', 'admin-post.php', 'async-upload.php' ), true ) ) return;
         if ( 'options.php' === $pagenow && 'POST' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) && 'sfv_settings_group' === sanitize_key( wp_unslash( $_POST['option_page'] ?? '' ) ) ) return;
         $allowed_pages = array( 'grfuel-manager', 'sfv-submissions', 'grfuel-new-order', 'grfuel-forms', 'grfuel-prices', 'sfv-settings', 'grfuel-backup', 'sfv-documentation', 'grfuel-changelog' );
         $page = sanitize_key( wp_unslash( $_GET['page'] ?? '' ) );
         if ( 'admin.php' === $pagenow && in_array( $page, $allowed_pages, true ) ) return;
         if ( in_array( $pagenow, array( 'post.php', 'post-new.php', 'edit.php' ), true ) ) {
             $post_type = sanitize_key( wp_unslash( $_GET['post_type'] ?? '' ) );
-            if ( 'post.php' === $pagenow ) $post_type = get_post_type( absint( $_GET['post'] ?? 0 ) ) ?: '';
+            if ( 'post.php' === $pagenow ) $post_type = get_post_type( $this->requested_post_id() ) ?: '';
             if ( self::CPT === $post_type ) return;
         }
         wp_safe_redirect( admin_url( 'admin.php?page=grfuel-manager' ) );
         exit;
+    }
+
+    private function requested_post_id(): int {
+        return absint( $_GET['post'] ?? $_POST['post_ID'] ?? $_POST['post'] ?? 0 );
     }
 
     public function protect_operator_role_assignment( array $roles ): array {
@@ -3590,7 +3595,7 @@ final class SFV_Plugin {
         foreach ( $forms as $form ) printf( '<option value="%d" %s>%s</option>', absint( $form->ID ), selected( $form_id, $form->ID, false ), esc_html( $form->post_title ) );
         echo '</select></label><noscript><button class="sfv-btn sfv-btn-secondary">Φόρτωση</button></noscript></form>';
         if ( $form_id && self::CPT === get_post_type( $form_id ) ) {
-            $fields = (array) get_post_meta( $form_id, '_sfv_fields', true );
+            $fields = array_filter( (array) get_post_meta( $form_id, '_sfv_fields', true ), 'is_array' );
             wp_add_inline_style( 'sfv-front', $this->appearance_css( $this->settings() ) );
             echo '<form class="sfv-form uk-form-stacked grfuel-admin-order-form" method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '"><input type="hidden" name="action" value="grfuel_create_admin_order"><input type="hidden" name="form_id" value="' . absint( $form_id ) . '">';
             wp_nonce_field( 'grfuel_create_admin_order_' . $form_id );
@@ -3612,7 +3617,7 @@ final class SFV_Plugin {
         $form_id = absint( $_POST['form_id'] ?? 0 );
         check_admin_referer( 'grfuel_create_admin_order_' . $form_id );
         if ( ! $form_id || self::CPT !== get_post_type( $form_id ) ) wp_die( 'Invalid form.' );
-        $fields = (array) get_post_meta( $form_id, '_sfv_fields', true );
+        $fields = array_filter( (array) get_post_meta( $form_id, '_sfv_fields', true ), 'is_array' );
         $posted = isset( $_POST['sfv_fields'] ) && is_array( $_POST['sfv_fields'] ) ? wp_unslash( $_POST['sfv_fields'] ) : array();
         $payload = array();
         foreach ( $fields as $field ) {

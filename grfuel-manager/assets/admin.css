@@ -1264,6 +1264,59 @@ body.grfuel-app-mode .ui-widget {
 /* OneSignal admin-only mobile push */
 .grfuel-push-panel{grid-column:1/-1;border:1px solid var(--sfv-border,#dfe5ef);border-radius:18px;padding:20px;background:rgba(255,255,255,.6);display:grid;gap:16px;max-width:100%;box-sizing:border-box}.grfuel-push-panel-head,.grfuel-push-panel-head>div,.grfuel-push-device-status{display:flex;align-items:center;gap:12px}.grfuel-push-panel-head{justify-content:space-between}.grfuel-push-panel-head .dashicons{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#111827;color:#fff;font-size:20px}.grfuel-push-panel-head small,.grfuel-push-device-status small{display:block;margin-top:3px}.grfuel-push-badge{font-size:12px;font-weight:700;padding:6px 10px;border-radius:999px;background:#eef2ff;color:#4338ca}.grfuel-push-credentials{margin:0}.grfuel-push-device-status{padding:14px;border:1px solid var(--sfv-border,#dfe5ef);border-radius:14px;background:#fff}.grfuel-push-device-status.is-ready .grfuel-browser-status-dot{background:#16a34a;box-shadow:0 0 0 5px rgba(22,163,74,.12)}.grfuel-push-device-status.is-error .grfuel-browser-status-dot{background:#dc2626;box-shadow:0 0 0 5px rgba(220,38,38,.12)}.grfuel-push-device-status.is-loading .grfuel-browser-status-dot{animation:grfuelPushPulse 1s infinite alternate}@keyframes grfuelPushPulse{to{transform:scale(1.35);opacity:.5}}@media(max-width:782px){.grfuel-push-panel{padding:15px}.grfuel-push-panel-head{align-items:flex-start}.grfuel-push-badge{flex:none}.grfuel-push-panel .grfuel-browser-notification-actions{display:grid;grid-template-columns:1fr}.grfuel-push-panel .sfv-btn{width:100%;justify-content:center}}
 
+/* 4.3.18 — full-width form builder workspace beside the application sidebar. */
+body.grfuel-app-mode.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){
+  width:auto!important;
+  max-width:none!important;
+  margin-left:286px!important;
+  margin-right:28px!important;
+  padding:0!important;
+}
+body.grfuel-app-mode.post-type-sfv_form #poststuff,
+body.grfuel-app-mode.post-type-sfv_form #post-body-content,
+body.grfuel-app-mode.post-type-sfv_form #postbox-container-2,
+body.grfuel-app-mode.post-type-sfv_form #sfv_fields,
+body.grfuel-app-mode.post-type-sfv_form #sfv_fields>.inside,
+body.grfuel-app-mode.post-type-sfv_form #sfv-builder{width:100%!important;max-width:none!important;min-width:0!important}
+body.grfuel-sidebar-collapsed.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){margin-left:104px!important;margin-right:28px!important}
+@media(max-width:782px){body.grfuel-app-mode.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),body.grfuel-sidebar-collapsed.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){width:auto!important;margin-left:0!important;margin-right:0!important}}
+
+/* 4.3.18 RC10 — the CPT editor wrap already contains the inline plugin header.
+   Apply the application gutter once to the outer wrap, matching New Order. */
+body.grfuel-app-mode.post-new-php.post-type-sfv_form #wpbody-content,
+body.grfuel-app-mode.post-php.post-type-sfv_form #wpbody-content{padding-left:0!important;padding-right:0!important}
+body.grfuel-app-mode.post-new-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+body.grfuel-app-mode.post-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0 28px 42px 286px!important;
+}
+body.grfuel-app-mode.post-new-php.post-type-sfv_form .sfv-inline-nav,
+body.grfuel-app-mode.post-php.post-type-sfv_form .sfv-inline-nav{
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding-left:286px!important;
+  padding-right:28px!important;
+}
+body.grfuel-sidebar-collapsed.post-new-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+body.grfuel-sidebar-collapsed.post-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){padding-left:104px!important}
+body.grfuel-sidebar-collapsed.post-new-php.post-type-sfv_form .sfv-inline-nav,
+body.grfuel-sidebar-collapsed.post-php.post-type-sfv_form .sfv-inline-nav{padding-left:104px!important}
+@media(max-width:782px){
+  body.grfuel-app-mode.post-new-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+  body.grfuel-app-mode.post-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+  body.grfuel-sidebar-collapsed.post-new-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+  body.grfuel-sidebar-collapsed.post-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){padding:0 12px 30px!important}
+  body.grfuel-app-mode.post-new-php.post-type-sfv_form .sfv-inline-nav,
+  body.grfuel-app-mode.post-php.post-type-sfv_form .sfv-inline-nav,
+  body.grfuel-sidebar-collapsed.post-new-php.post-type-sfv_form .sfv-inline-nav,
+  body.grfuel-sidebar-collapsed.post-php.post-type-sfv_form .sfv-inline-nav{padding:0 12px!important}
+}
+
 
 /* GRFuel Manager 4.3.0 — persistent light/dark form preview and mobile checkbox geometry */
 .sfv-settings-preview-heading{gap:12px;flex-wrap:wrap}
@@ -1314,6 +1367,14 @@ body.grfuel-app-mode .ui-widget {
 
 /* jQuery UI datepicker used by New Order. */
 .ui-datepicker{z-index:100100!important;width:290px;padding:12px;border:1px solid #d9e1ec;border-radius:14px;background:#fff;box-shadow:0 18px 50px rgba(15,23,42,.18);font-family:"Geom",sans-serif}
+
+.grfuel-session-refresh{position:fixed;right:24px;bottom:24px;z-index:100120;display:flex;align-items:center;gap:9px;min-height:48px;padding:0 17px;border:0;border-radius:999px;background:#0e3e5f;color:#fff;box-shadow:0 12px 32px rgba(14,62,95,.28);font:700 13px/1 "Geom",sans-serif;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease,opacity .18s ease}
+.grfuel-session-refresh:hover,.grfuel-session-refresh:focus-visible{transform:translateY(-2px);box-shadow:0 16px 38px rgba(14,62,95,.36);color:#fff;outline:2px solid rgba(14,62,95,.22);outline-offset:3px}
+.grfuel-session-refresh:disabled{opacity:.7;cursor:wait;transform:none}.grfuel-session-refresh .dashicons{width:21px;height:21px;font-size:21px;line-height:21px}.grfuel-session-refresh.is-loading .dashicons{animation:grfuel-session-spin .8s linear infinite}
+.grfuel-session-countdown{min-width:66px;padding-left:9px;border-left:1px solid rgba(255,255,255,.3);font:700 13px/1 ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-variant-numeric:tabular-nums;letter-spacing:.02em;color:#fff}
+.grfuel-session-toast{position:fixed;right:24px;bottom:82px;z-index:100121;max-width:min(330px,calc(100vw - 32px));padding:11px 15px;border-radius:10px;background:#172033;color:#fff;box-shadow:0 10px 28px rgba(15,23,42,.24);font:600 13px/1.4 "Geom",sans-serif;opacity:0;pointer-events:none;transform:translateY(8px);transition:opacity .18s ease,transform .18s ease}.grfuel-session-toast.is-visible{opacity:1;transform:translateY(0)}.grfuel-session-toast.is-error{background:#9f1d24}
+@keyframes grfuel-session-spin{to{transform:rotate(360deg)}}
+@media(max-width:600px){.grfuel-session-refresh{right:14px;bottom:14px;padding:0 13px;justify-content:center}.grfuel-session-refresh-label{display:none}.grfuel-session-countdown{min-width:62px}.grfuel-session-toast{right:14px;bottom:72px}}
 .ui-datepicker .ui-datepicker-header{position:relative;display:flex;align-items:center;justify-content:center;padding:4px 38px 10px;border:0;background:transparent}
 .ui-datepicker .ui-datepicker-title{font-weight:800;color:#17233a}
 .ui-datepicker .ui-datepicker-prev,.ui-datepicker .ui-datepicker-next{position:absolute;top:1px;display:grid;place-items:center;width:32px;height:32px;border-radius:9px;cursor:pointer;color:#36516f}
@@ -1534,3 +1595,35 @@ body.wp-admin #wpwrap #wpbody #wpbody-content .grfuel-new-order-page form.grfuel
 .sfv-message-only-heading strong{font-size:14px}
 .sfv-message-only-badge{display:inline-flex;align-items:center;min-height:26px;padding:3px 9px;border-radius:999px;background:rgba(99,91,255,.11);color:#4b43c7;font-size:12px;font-weight:700}
 .sfv-message-only-settings select:disabled,.sfv-message-only-settings textarea:disabled{opacity:.55;cursor:not-allowed}
+
+/* Keep the destructive row action as a compact POST form. */
+.sfv-inline-delete-form{display:inline-flex;margin:0}
+.sfv-inline-delete-form .sfv-icon-action{padding:0;cursor:pointer}
+.sfv-inline-delete-form .sfv-delete-link{margin-left:0}
+
+/* 4.3.19 — the editor header lives inside the already-guttered WordPress wrap.
+   Do not apply the sidebar offset a second time to the Form Builder header. */
+body.grfuel-app-mode.post-new-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+body.grfuel-app-mode.post-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0 28px 42px 286px!important;
+}
+body.grfuel-app-mode.post-new-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page)>.sfv-inline-nav,
+body.grfuel-app-mode.post-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page)>.sfv-inline-nav{
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  padding:0!important;
+}
+body.grfuel-sidebar-collapsed.post-new-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+body.grfuel-sidebar-collapsed.post-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){padding-left:104px!important}
+@media(max-width:782px){
+  body.grfuel-app-mode.post-new-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+  body.grfuel-app-mode.post-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+  body.grfuel-sidebar-collapsed.post-new-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page),
+  body.grfuel-sidebar-collapsed.post-php.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){padding:0 12px 30px!important}
+}

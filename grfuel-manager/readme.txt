@@ -3,7 +3,7 @@ Contributors: Dazzlink
 Tags: forms, yootheme, uikit, turnstile, excel, submissions
 Requires at least: 6.4
 Requires PHP: 8.0
-Stable tag: 4.3.18
+Stable tag: 4.5.0
 License: GPLv2 or later
 
 Ασφαλής visual form builder για WordPress και YOOtheme/UIkit, με αποθήκευση υποβολών, Cloudflare Turnstile και εξαγωγές XLSX/XML.
@@ -16,6 +16,15 @@ License: GPLv2 or later
 2. Ενεργοποίησε το GRFuel Manager.
 3. Δημιούργησε φόρμα από GRFuel Manager → Φόρμες → Νέα φόρμα.
 4. Πρόσθεσε Turnstile keys στις Ρυθμίσεις.
+
+== Χρήστες Manager και OTP ==
+1. Ο Administrator δημιουργεί τον χρήστη και επιλέγει ρόλο «GRFuel Operator».
+2. Από GRFuel Manager → Χρήστες Manager πατά «Έγκριση». Ο ρόλος από μόνος του δεν επιτρέπει σύνδεση.
+3. Επιβεβαίωσε πρώτα ότι το WordPress αποστέλλει email μέσω SMTP και μετά ενεργοποίησε το Email OTP από την ίδια σελίδα.
+4. Οι εγκεκριμένοι Operators συνδέονται από `/grfuel-login/` με password και εξαψήφιο email OTP. Ο Administrator συνδέεται κανονικά από τη σελίδα σύνδεσης του WordPress.
+5. Ο Operator έχει πλήρη πρόσβαση στο GRFuel Manager, αλλά δεν μπορεί να διαχειριστεί λογαριασμούς, plugins ή το υπόλοιπο WordPress admin.
+
+Για έκτακτη ανάκτηση όταν το email δεν λειτουργεί, ο Administrator μπορεί προσωρινά να ορίσει `define( 'GRFUEL_DISABLE_OTP', true );` στο `wp-config.php`. Η έγκριση Operator συνεχίζει να ελέγχεται.
 5. Τοποθέτησε το shortcode στη σελίδα YOOtheme.
 
 == Χρήση ==
@@ -30,14 +39,40 @@ License: GPLv2 or later
 == GDPR & διατήρηση δεδομένων ==
 Από την οθόνη Υποβολές & Export μπορούμε να διαγράψουμε οριστικά όλες τις αποθηκευμένες υποβολές. Η επαναφορά του submission ID στο 1 επιτρέπεται μόνο όταν ο πίνακας είναι άδειος. Πριν από μαζική διαγραφή συνιστάται export ή άλλο αντίγραφο ασφαλείας, ανάλογα με την πολιτική διατήρησης δεδομένων.
 
-== Ρόλος GRFuel Operator ==
-Από την 4.3.18 υπάρχει ο ρόλος «GRFuel Operator». Δίνει πλήρη πρόσβαση στον GRFuel Manager χωρίς δικαιώματα administrator στο WordPress. Τον ορίζουμε από Χρήστες → Επεξεργασία χρήστη → Ρόλος. Οι administrators διατηρούν αυτόματα την πρόσβασή τους.
-
 == Changelog ==
 
+= 4.5.0 =
+* Το floating κουμπί συνεδρίας εμφανίζει ζωντανή αντίστροφη μέτρηση και επιστρέφει στην πλήρη διάρκεια μετά την ανανέωση.
+* Διορθώθηκε η επιστροφή στη σελίδα σύνδεσης αμέσως μετά από επιτυχημένο OTP.
+* Νέο ανεξάρτητο URL `/grfuel-manager/` για Operators και Administrators, χωρίς `wp-admin` στη γραμμή διεύθυνσης.
+* Ξεχωριστή συνεδρία Manager ώστε το OTP login να μην επηρεάζει το κανονικό WordPress admin login.
+* Ρυθμιζόμενη διάρκεια συνεδρίας Manager από τις Ρυθμίσεις (15 λεπτά έως 7 ημέρες).
+* Floating κουμπί ανανέωσης κάτω δεξιά που επαναφέρει τη διάρκεια της ενεργής συνεδρίας.
+* Ξεχωριστή έξοδος Manager που δεν αποσυνδέει τον Administrator από το WordPress.
+
+= 4.3.22 =
+* Η εξαγωγή Excel χρησιμοποιεί πλέον ως απόλυτη προτεραιότητα το προϊόν που αποθηκεύτηκε στην παραγγελία και όχι το fallback ενός άλλου calculator της ίδιας φόρμας.
+
+= 4.3.21 =
+* Διορθώθηκε η παραγωγή του ονόματος αρχείου εξαγωγής σε ορισμένες εκδόσεις PHP/PCRE, ώστε τα XLSX και XML να κατεβαίνουν χωρίς warnings ή αλλοίωση των headers.
+
+= 4.3.20 =
+* Αφαιρέθηκε η χρήση των παρωχημένων `wp_targeted_link_rel()` helpers για πλήρη συμβατότητα με WordPress 6.7 και νεότερο, διατηρώντας ασφαλή `noopener noreferrer` στα links των checkbox labels.
+
+= 4.3.19 =
+* Διορθώθηκε το πλάτος του Form Builder ώστε να χρησιμοποιεί μία φορά το sidebar gutter και να ευθυγραμμίζεται με τις υπόλοιπες σελίδες, τόσο σε ανοικτό όσο και σε collapsed sidebar.
+
 = 4.3.18 =
-* Νέος ρόλος GRFuel Operator με πλήρη πρόσβαση στον Manager.
-* Διορθώθηκε η διαγραφή μεμονωμένης παραγγελίας.
+* Aligned frontend and server-side delivery city validation for legacy forms with one region selector.
+* Fixed delivery region/city runtime data loading in themes and builders that render shortcodes at a later stage.
+* Added safe import compatibility for legacy exports through 4.3.17 whose checksum cannot be reproduced after JSON decoding.
+* Security hardening: validation now runs before public rate-limit consumption and request size/cardinality limits were added.
+* Turnstile verification now fails closed and validates both the expected action and site hostname.
+* Imported forms, submissions, settings and price history are normalized before restore; imported standalone forms remain drafts.
+* State-changing admin actions require POST, capability checks and nonces, including individual submission deletion.
+* Backups exclude secrets by default and downloads receive private/no-cache response headers.
+* Added configurable automatic data retention and WordPress privacy export/erase integration.
+* Hardened admin notifications against stored HTML injection and limited/cached public chart responses.
 
 = 4.2.8 =
 * Fixed mobile horizontal overflow.

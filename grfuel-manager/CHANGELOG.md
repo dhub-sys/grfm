@@ -1,11 +1,53 @@
 # Changelog
 
+## 4.4.0
+- Το email OTP και η ξεχωριστή σελίδα σύνδεσης εφαρμόζονται μόνο στους GRFuel Operators. Οι Administrators συνδέονται από το κανονικό WordPress login.
+- Η ξεχωριστή σελίδα σύνδεσης χρησιμοποιεί πλέον τη γραμματοσειρά Geom και έξι ανεξάρτητα, responsive πεδία OTP με υποστήριξη paste, backspace και πλοήγησης από το πληκτρολόγιο.
+- Το email OTP επανασχεδιάστηκε με table-based responsive HTML για συματότητα με Gmail και άλλους δημοφιλείς clients, με αποστολέα `GRFuel Manager <no-reply@grfuel.gr>`.
+- Προστέθηκε ο ειδικός ρόλος `GRFuel Operator` με πλήρη πρόσβαση σε όλες τις λειτουργίες του GRFuel Manager, χωρίς δικαιώματα διαχείρισης WordPress, plugins ή χρηστών.
+- Η δημιουργία, ανάθεση ρόλου, έγκριση και ανάκληση Operator παραμένουν αποκλειστικά στον Administrator.
+- Προστέθηκε ξεχωριστή σελίδα σύνδεσης `/grfuel-login/` για Administrators και εγκεκριμένους Operators.
+- Προστέθηκε email OTP έξι ψηφίων, με διάρκεια πέντε λεπτών, αποθήκευση μόνο του HMAC, όριο προσπαθειών και browser-bound, HttpOnly session marker.
+- Το OTP ενεργοποιείται ρητά από τον Administrator αφού ελεγχθεί η αξιόπιστη αποστολή email, ώστε να μην προκληθεί lockout κατά την αναβάθμιση.
+- Η αποθήκευση ρυθμίσεων και τιμών ημέρας χρησιμοποιεί περιορισμένα capabilities και εξειδικευμένους nonce-protected handlers.
+
+## 4.3.22
+- Διορθώθηκε η επίλυση προϊόντος στο XLSX όταν η ίδια φόρμα περιέχει dropdown προϊόντος για επιχειρήσεις και single-product calculator για οικιακούς πελάτες. Η υποβληθείσα τιμή έχει πλέον προτεραιότητα έναντι κάθε schema fallback.
+- Ο fallback υπολογισμός του συνόλου στο XLSX χρησιμοποιεί το ίδιο επιβεβαιωμένο προϊόν της παραγγελίας.
+
+## 4.3.21
+- Αντικαταστάθηκε το προβληματικό regular expression καθαρισμού του filename εξαγωγής με ασφαλές `str_replace`, διορθώνοντας το `Unknown modifier ':'` και τα επακόλουθα `headers already sent` σε XLSX/XML exports.
+
+## 4.3.20
+- Αντικαταστάθηκαν οι παρωχημένες `wp_targeted_link_rel()` και `wp_targeted_link_rel_callback()` με εσωτερικό ασφαλή sanitizer για links σε checkbox labels. Δεν εμφανίζονται πλέον deprecated notices σε WordPress 6.7+/7.0.
+
+## 4.3.19
+- Διορθώθηκε το διπλό sidebar offset του Form Builder. Η κεφαλίδα και ο editor χρησιμοποιούν πλέον όλο το διαθέσιμο πλάτος, με σωστή ευθυγράμμιση και σε collapsed/mobile κατάσταση.
+
 ## 4.3.18
-- Νέος ρόλος WordPress «GRFuel Operator» με πλήρη πρόσβαση σε όλες τις οθόνες και ενέργειες του Manager (Παραγγελίες, Νέα Παραγγελία, Φόρμες, Τιμές Ημέρας, Ρυθμίσεις, Backup / Restore), χωρίς δικαιώματα administrator στο υπόλοιπο WordPress.
-- Η πρόσβαση ελέγχεται πλέον από τη δυνατότητα `grfuel_manage` αντί για `manage_options`. Όποιος έχει `manage_options` (administrators) την αποκτά αυτόματα.
-- Οι φόρμες χρησιμοποιούν δικές τους δυνατότητες (`edit_grfuel_forms` κ.λπ.), ώστε ο Operator να επεξεργάζεται φόρμες χωρίς πρόσβαση στα άρθρα του site.
-- Μετά τη σύνδεση ο Operator μεταφέρεται απευθείας στον Πίνακα Ελέγχου του Manager και λαμβάνει τις ειδοποιήσεις νέων παραγγελιών (browser και mobile push).
-- Διορθώθηκε η διαγραφή μεμονωμένης παραγγελίας από τη λίστα Παραγγελιών, που προκαλούσε κρίσιμο σφάλμα.
+- Διορθώθηκε η μεμονωμένη διαγραφή παραγγελίας ώστε το κουμπί της λίστας να χρησιμοποιεί το απαιτούμενο POST αίτημα με nonce.
+- Προστέθηκε σταθερή διάταξη PDF δύο στηλών για οικιακούς πελάτες: στοιχεία πελάτη, ΑΦΜ/μετρητής, επικοινωνία, ποσότητα/σύνολο, παράδοση και συναίνεση GDPR.
+- Σε περιβάλλον `WP_DEBUG` οι αποτυχημένες υποβολές εμφανίζουν μη ευαίσθητο validation code για ασφαλή διάγνωση· στο production παραμένει το γενικό μήνυμα.
+- Τα διπλά schema fields του ίδιου PDF slot δεν δημιουργούν πλέον πρόσθετη γραμμή· προτιμάται αυτόματα το μη κενό πεδίο.
+- Το επάνω Form Builder header ακολουθεί ανεξάρτητα το ίδιο sidebar gutter με τη Νέα Παραγγελία.
+- Η ταξινόμηση πεδίων στο εταιρικό PDF χρησιμοποιεί και το αποθηκευμένο schema label, ώστε placeholders να μην αλλάζουν τη θέση της Διεύθυνσης ή άλλων πεδίων.
+- Αφαιρέθηκε το διπλό οριζόντιο offset του WordPress CPT editor ώστε ο Form Builder να έχει ακριβώς το πλάτος της Νέας Παραγγελίας.
+- Ο Form Builder χρησιμοποιεί πλέον ολόκληρο το διαθέσιμο πλάτος δεξιά από το application sidebar.
+- Η εταιρική διάταξη PDF έγινε τέσσερις σειρές των τριών πεδίων και επανήλθαν τα τρία summary boxes.
+- Στα PDF επιχειρήσεων το Τηλέφωνο εμφανίζεται ως τρίτο πεδίο στη γραμμή ΑΦΜ/Email/Τηλέφωνο.
+- Προστέθηκε ρητή κανονικοποίηση ελληνικών τόνων/διαλυτικών, καθώς το WordPress `remove_accents()` δεν τους αφαιρεί με συνέπεια.
+- Διορθώθηκε η Unicode αναγνώριση ελληνικών labels/τιμών για την ταξινόμηση PDF επιχειρήσεων.
+- Τα PDF επιχειρήσεων εμφανίζουν πλέον σταθερή διάταξη Τύπου Πελάτη/Επωνυμίας, ΑΦΜ/Email, Προϊόντος/Ποσότητας και Ημερομηνίας/Νομού/Πόλης, χωρίς σύνολο παραγγελίας.
+- Ενοποιήθηκε το frontend και server-side fallback σύνδεσης Πόλης με τον μοναδικό Νομό σε παλαιότερες φόρμες.
+- Διορθώθηκε η φόρτωση των δεδομένων Νομού/Πόλης σε themes και builders που αποδίδουν τα shortcodes σε μεταγενέστερο στάδιο.
+- Προστέθηκε ασφαλής συμβατότητα import για exports έως 4.3.17 των οποίων το legacy checksum δεν αναπαράγεται μετά την αποκωδικοποίηση JSON.
+- Ενισχύθηκε η δημόσια υποβολή με όρια μεγέθους/πλήθους πεδίων και κατανάλωση του rate limit μόνο μετά την επιτυχή επικύρωση.
+- Το Cloudflare Turnstile αποτυγχάνει πλέον με ασφάλεια και επαληθεύει υποχρεωτικά action και hostname.
+- Τα imports και το πλήρες restore κανονικοποιούν και επικυρώνουν φόρμες, submissions, ρυθμίσεις και ιστορικό τιμών πριν την αντικατάσταση δεδομένων.
+- Οι μεταβαλλόμενες admin ενέργειες απαιτούν POST, δικαίωμα διαχειριστή και nonce. Διορθώθηκε η μεμονωμένη διαγραφή παραγγελίας.
+- Τα backups εξαιρούν μυστικά κλειδιά από προεπιλογή και κατεβαίνουν με private/no-cache headers.
+- Προστέθηκαν αυτόματη διατήρηση δεδομένων και διασύνδεση με τα εργαλεία εξαγωγής/διαγραφής προσωπικών δεδομένων του WordPress.
+- Αφαιρέθηκε πιθανότητα stored HTML injection στις admin ειδοποιήσεις και προστέθηκαν όρια/cache στα δημόσια γραφήματα.
 
 ## 4.3.17
 - Προστέθηκε εμφανής ενότητα «Λογική επιλογής» στα radio fields του Form Builder.
@@ -402,3 +444,12 @@
 - Προστέθηκε tap/click tooltip στα bullets του γραφήματος για κινητά και tablets, με ημερομηνία και τιμή.
 - Προστέθηκε υποστήριξη πληκτρολογίου με Enter/Space και κλείσιμο με Escape ή πάτημα εκτός γραφήματος.
 - Το ενεργό bullet επισημαίνεται και το tooltip κλείνει αυτόματα κατά την οριζόντια κύλιση.
+# 4.5.0
+
+- Added a live HH:MM:SS session countdown to the floating refresh control.
+- Fixed the Manager portal returning to login immediately after successful OTP verification.
+- Added `/grfuel-manager/` as the dedicated Manager entry point for Operators and Administrators.
+- Separated Manager OTP sessions from normal WordPress administrator sessions.
+- Added an administrator-configurable Manager session duration (15 minutes to 7 days).
+- Added a fixed session refresh control that restarts the configured duration.
+- Manager logout now leaves the normal WordPress administrator session untouched.

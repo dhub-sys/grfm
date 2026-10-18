@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GRFuel Manager
  * Description: Fuel order forms, daily product prices, submissions, exports and order notifications for YOOtheme.
- * Version: 4.3.18
+ * Version: 4.5.0
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Dazzlink
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class SFV_Plugin {
-    private const VERSION = '4.3.18';
+    private const VERSION = '4.5.0';
     private const PRODUCT_NAME = 'GRFuel Manager';
     private const TAGLINE = 'Fuel pricing and orders, under control.';
     private const CPT = 'sfv_form';
@@ -23,16 +23,31 @@ final class SFV_Plugin {
     private const DB_VERSION = '1.1';
     private const DB_OPTION = 'sfv_db_version';
     private const DATA_SNAPSHOT_OPTION = 'grfuel_persistent_catalog_snapshot';
-    private const CAPABILITY = 'grfuel_manage';
+    private const CAPABILITY = 'grfuel_access_manager';
+    private const ADMIN_CAPABILITY = 'grfuel_access_manager';
+    private const USER_ADMIN_CAPABILITY = 'manage_options';
     private const OPERATOR_ROLE = 'grfuel_operator';
-    private const ROLES_VERSION = '1';
-    private const ROLES_OPTION = 'grfuel_roles_version';
+    private const OTP_TTL = 300;
+    private const OTP_MAX_ATTEMPTS = 5;
+    private const ROLE_VERSION_OPTION = 'grfuel_role_version';
+    private const OTP_ENABLED_OPTION = 'grfuel_otp_enabled';
+    private const OTP_SESSION_COOKIE = 'grfuel_otp_session';
 
     public static function boot(): void {
         $plugin = new self();
         register_activation_hook( __FILE__, array( $plugin, 'activate' ) );
+        register_deactivation_hook( __FILE__, array( $plugin, 'deactivate' ) );
         add_action( 'plugins_loaded', array( $plugin, 'maybe_upgrade' ) );
         add_action( 'init', array( $plugin, 'register_form_type' ) );
+        add_action( 'init', array( $plugin, 'authenticate_manager_session' ), 0 );
+        add_action( 'template_redirect', array( $plugin, 'manager_portal_page' ), -1 );
+        add_action( 'template_redirect', array( $plugin, 'manager_logout_page' ), -2 );
+        add_action( 'template_redirect', array( $plugin, 'manager_login_page' ), 0 );
+        add_action( 'wp_login', array( $plugin, 'require_manager_otp_after_standard_login' ), 10, 2 );
+        add_filter( 'logout_redirect', array( $plugin, 'manager_logout_redirect' ), 10, 3 );
+        add_filter( 'editable_roles', array( $plugin, 'protect_operator_role_assignment' ) );
+        add_action( 'admin_post_grfuel_set_operator_approval', array( $plugin, 'set_operator_approval' ) );
+        add_action( 'admin_post_grfuel_set_otp_enabled', array( $plugin, 'set_otp_enabled' ) );
         add_action( 'add_meta_boxes', array( $plugin, 'add_form_meta_box' ) );
         add_action( 'save_post_' . self::CPT, array( $plugin, 'save_form' ), 10, 2 );
         add_action( 'admin_enqueue_scripts', array( $plugin, 'admin_assets' ) );
@@ -49,10 +64,14 @@ final class SFV_Plugin {
         add_shortcode( 'grfuel_price_chart_mobile', array( $plugin, 'daily_price_chart_mobile_shortcode' ) );
         add_action( 'wp_ajax_grfuel_check_orders', array( $plugin, 'ajax_check_orders' ) );
         add_action( 'wp_ajax_grfuel_push_test', array( $plugin, 'ajax_push_test' ) );
+        add_action( 'wp_ajax_grfuel_refresh_manager_session', array( $plugin, 'ajax_refresh_manager_session' ) );
+        add_action( 'wp_ajax_nopriv_grfuel_refresh_manager_session', array( $plugin, 'ajax_refresh_manager_session' ) );
+        add_action( 'admin_footer', array( $plugin, 'manager_session_button' ) );
         add_action( 'wp_ajax_grfuel_price_chart', array( $plugin, 'ajax_price_chart' ) );
         add_action( 'wp_ajax_nopriv_grfuel_price_chart', array( $plugin, 'ajax_price_chart' ) );
         add_action( 'admin_post_grfuel_add_price_entry', array( $plugin, 'add_price_history_entry' ) );
         add_action( 'admin_post_grfuel_delete_price_entry', array( $plugin, 'delete_price_history_entry' ) );
+        add_action( 'admin_post_grfuel_save_daily_prices', array( $plugin, 'save_daily_prices' ) );
         add_action( 'admin_post_grfuel_create_form', array( $plugin, 'create_form_from_manager' ) );
         add_action( 'admin_post_grfuel_delete_form', array( $plugin, 'delete_form_from_manager' ) );
         add_action( 'wp_ajax_sfv_price', array( $plugin, 'ajax_price' ) );
@@ -61,6 +80,9 @@ final class SFV_Plugin {
         add_action( 'admin_post_sfv_submit', array( $plugin, 'handle_submission' ) );
         add_action( 'admin_menu', array( $plugin, 'admin_menu' ) );
         add_action( 'admin_init', array( $plugin, 'register_settings' ) );
+        add_filter( 'option_page_capability_sfv_settings_group', array( $plugin, 'manager_settings_capability' ) );
+        add_action( 'admin_init', array( $plugin, 'enforce_manager_otp_session' ), 0 );
+        add_action( 'admin_init', array( $plugin, 'restrict_operator_admin' ), 1 );
         add_action( 'admin_post_sfv_export', array( $plugin, 'export_submissions' ) );
         add_action( 'admin_post_sfv_export_submission_pdf', array( $plugin, 'export_submission_pdf' ) );
         add_action( 'admin_post_sfv_export_selected_pdf', array( $plugin, 'export_selected_pdf' ) );
@@ -72,78 +94,42 @@ final class SFV_Plugin {
         add_action( 'admin_post_grfuel_import_form', array( $plugin, 'import_form' ) );
         add_action( 'admin_post_grfuel_import_backup', array( $plugin, 'import_backup' ) );
         add_action( 'admin_post_grfuel_create_admin_order', array( $plugin, 'create_admin_order' ) );
+        add_action( 'sfv_daily_retention', array( $plugin, 'run_retention' ) );
+        add_filter( 'wp_privacy_personal_data_exporters', array( $plugin, 'register_privacy_exporter' ) );
+        add_filter( 'wp_privacy_personal_data_erasers', array( $plugin, 'register_privacy_eraser' ) );
         add_filter( 'plugin_action_links_' . plugin_basename( __FILE__ ), array( $plugin, 'plugin_links' ) );
         add_filter( 'manage_' . self::CPT . '_posts_columns', array( $plugin, 'form_columns' ) );
         add_filter( 'enter_title_here', array( $plugin, 'form_title_placeholder' ), 10, 2 );
         add_filter( 'redirect_post_location', array( $plugin, 'redirect_form_after_save' ), 10, 2 );
         add_action( 'manage_' . self::CPT . '_posts_custom_column', array( $plugin, 'form_column_content' ), 10, 2 );
-        add_filter( 'user_has_cap', array( $plugin, 'grant_admin_caps' ) );
-        add_filter( 'option_page_capability_sfv_settings_group', array( $plugin, 'settings_capability' ) );
-        add_filter( 'login_redirect', array( $plugin, 'operator_login_redirect' ), 10, 3 );
-    }
-
-    // Όλες οι δυνατότητες του Manager: η βασική και όσες χρειάζεται ο Form Builder (custom post type).
-    private function manager_caps(): array {
-        return array(
-            self::CAPABILITY,
-            'edit_grfuel_forms', 'edit_others_grfuel_forms', 'edit_published_grfuel_forms', 'edit_private_grfuel_forms',
-            'publish_grfuel_forms', 'read_private_grfuel_forms',
-            'delete_grfuel_forms', 'delete_others_grfuel_forms', 'delete_published_grfuel_forms', 'delete_private_grfuel_forms',
-        );
-    }
-
-    // Οι administrators (manage_options) διατηρούν πάντα πλήρη πρόσβαση, χωρίς αλλαγή στον ρόλο τους.
-    public function grant_admin_caps( array $allcaps ): array {
-        if ( ! empty( $allcaps['manage_options'] ) ) {
-            foreach ( $this->manager_caps() as $cap ) $allcaps[ $cap ] = true;
-        }
-        return $allcaps;
-    }
-
-    public function settings_capability(): string {
-        return self::CAPABILITY;
-    }
-
-    private function sync_roles(): void {
-        $caps = array( 'read' => true, 'upload_files' => true );
-        foreach ( $this->manager_caps() as $cap ) $caps[ $cap ] = true;
-        $role = get_role( self::OPERATOR_ROLE );
-        if ( ! $role ) {
-            add_role( self::OPERATOR_ROLE, 'GRFuel Operator', $caps );
-        } else {
-            foreach ( $caps as $cap => $grant ) $role->add_cap( $cap, $grant );
-        }
-        update_option( self::ROLES_OPTION, self::ROLES_VERSION, false );
-    }
-
-    public function operator_login_redirect( $redirect_to, $requested, $user ) {
-        if ( $user instanceof WP_User && in_array( self::OPERATOR_ROLE, (array) $user->roles, true ) && ! user_can( $user, 'manage_options' ) ) {
-            $default = admin_url();
-            if ( '' === (string) $requested || $default === $redirect_to || admin_url( 'index.php' ) === $redirect_to ) {
-                return admin_url( 'admin.php?page=grfuel-manager' );
-            }
-        }
-        return $redirect_to;
     }
 
     public function activate(): void {
         // Activation and updates are intentionally non-destructive. dbDelta only adds or
         // adjusts schema and never truncates the submissions table or resets options.
         $this->create_table();
+        $this->sync_manager_roles( true );
         $this->restore_catalog_snapshot_if_needed();
         update_option( self::DB_OPTION, self::DB_VERSION, false );
-        $this->sync_roles();
+        if ( ! wp_next_scheduled( 'sfv_daily_retention' ) ) {
+            wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'sfv_daily_retention' );
+        }
+    }
+
+    public function deactivate(): void {
+        wp_clear_scheduled_hook( 'sfv_daily_retention' );
     }
 
     public function maybe_upgrade(): void {
+        $this->sync_manager_roles();
         $installed = (string) get_option( self::DB_OPTION, '' );
         if ( self::DB_VERSION !== $installed ) {
             $this->create_table();
             $this->restore_catalog_snapshot_if_needed();
             update_option( self::DB_OPTION, self::DB_VERSION, false );
         }
-        if ( self::ROLES_VERSION !== (string) get_option( self::ROLES_OPTION, '' ) ) {
-            $this->sync_roles();
+        if ( ! wp_next_scheduled( 'sfv_daily_retention' ) ) {
+            wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'sfv_daily_retention' );
         }
         $this->snapshot_catalog();
     }
@@ -170,9 +156,446 @@ final class SFV_Plugin {
         }
     }
 
+    private function manager_form_capabilities(): array {
+        return array(
+            'edit_grfuel_form', 'read_grfuel_form', 'delete_grfuel_form',
+            'edit_grfuel_forms', 'edit_others_grfuel_forms', 'publish_grfuel_forms',
+            'read_private_grfuel_forms', 'delete_grfuel_forms',
+            'delete_private_grfuel_forms', 'delete_published_grfuel_forms',
+            'delete_others_grfuel_forms', 'edit_private_grfuel_forms',
+            'edit_published_grfuel_forms',
+        );
+    }
+
+    private function sync_manager_roles( bool $force = false ): void {
+        if ( ! $force && '1' === (string) get_option( self::ROLE_VERSION_OPTION, '' ) ) return;
+        $caps = array_fill_keys( array_merge( array( 'read', self::CAPABILITY ), $this->manager_form_capabilities() ), true );
+        $operator = get_role( self::OPERATOR_ROLE );
+        if ( ! $operator ) {
+            add_role( self::OPERATOR_ROLE, 'GRFuel Operator', $caps );
+            $operator = get_role( self::OPERATOR_ROLE );
+        }
+        if ( $operator ) {
+            foreach ( $caps as $cap => $grant ) $operator->add_cap( $cap, $grant );
+            foreach ( array( 'manage_options', 'create_users', 'edit_users', 'delete_users', 'promote_users', 'install_plugins', 'activate_plugins', 'edit_plugins' ) as $forbidden ) {
+                $operator->remove_cap( $forbidden );
+            }
+        }
+        $administrator = get_role( 'administrator' );
+        if ( $administrator ) {
+            $administrator->add_cap( self::CAPABILITY );
+            foreach ( $this->manager_form_capabilities() as $cap ) $administrator->add_cap( $cap );
+        }
+        update_option( self::ROLE_VERSION_OPTION, '1', false );
+    }
+
     private function table(): string {
         global $wpdb;
         return $wpdb->prefix . 'sfv_submissions';
+    }
+
+    private function manager_login_url( array $args = array() ): string {
+        return add_query_arg( $args, home_url( '/grfuel-login/' ) );
+    }
+
+    private function manager_portal_url(): string {
+        return home_url( '/grfuel-manager/' );
+    }
+
+    private function manager_logout_url(): string {
+        return wp_nonce_url( home_url( '/grfuel-manager-logout/' ), 'grfuel_manager_logout' );
+    }
+
+    private function manager_user_can_login( WP_User $user ): bool {
+        return in_array( 'administrator', (array) $user->roles, true )
+            || in_array( self::OPERATOR_ROLE, (array) $user->roles, true );
+    }
+
+    private function manager_user_requires_otp( WP_User $user ): bool {
+        return in_array( self::OPERATOR_ROLE, (array) $user->roles, true );
+    }
+
+    private function otp_enabled(): bool {
+        return '1' === (string) get_option( self::OTP_ENABLED_OPTION, '0' );
+    }
+
+    private function operator_is_approved( WP_User $user ): bool {
+        if ( in_array( 'administrator', (array) $user->roles, true ) ) return true;
+        return in_array( self::OPERATOR_ROLE, (array) $user->roles, true )
+            && '1' === (string) get_user_meta( $user->ID, 'grfuel_operator_approved', true );
+    }
+
+    private function otp_state_key( string $token ): string {
+        return 'grfuel_otp_' . hash_hmac( 'sha256', $token, wp_salt( 'auth' ) );
+    }
+
+    private function otp_browser_hash(): string {
+        return hash_hmac( 'sha256', sanitize_text_field( wp_unslash( $_SERVER['HTTP_USER_AGENT'] ?? '' ) ), wp_salt( 'nonce' ) );
+    }
+
+    private function otp_session_key( string $token ): string {
+        return 'grfuel_otp_session_' . hash_hmac( 'sha256', $token, wp_salt( 'secure_auth' ) );
+    }
+
+    private function otp_session_valid( WP_User $user ): bool {
+        $token = sanitize_text_field( wp_unslash( $_COOKIE[ self::OTP_SESSION_COOKIE ] ?? '' ) );
+        if ( ! preg_match( '/^[a-f0-9]{64}$/', $token ) ) return false;
+        $state = get_transient( $this->otp_session_key( $token ) );
+        return is_array( $state )
+            && (int) ( $state['user_id'] ?? 0 ) === (int) $user->ID
+            && time() < (int) ( $state['expires'] ?? 0 )
+            && hash_equals( (string) ( $state['browser'] ?? '' ), $this->otp_browser_hash() );
+    }
+
+    private function manager_session_seconds(): int {
+        $minutes = absint( $this->settings()['manager_session_minutes'] ?? 480 );
+        return max( 15, min( 10080, $minutes ) ) * MINUTE_IN_SECONDS;
+    }
+
+    private function create_otp_session( WP_User $user, bool $remember ): bool {
+        try {
+            $token = bin2hex( random_bytes( 32 ) );
+        } catch ( Throwable $error ) {
+            return false;
+        }
+        unset( $remember );
+        $ttl = $this->manager_session_seconds();
+        set_transient( $this->otp_session_key( $token ), array( 'user_id' => (int) $user->ID, 'browser' => $this->otp_browser_hash(), 'expires' => time() + $ttl ), $ttl );
+        setcookie( self::OTP_SESSION_COOKIE, $token, array(
+            'expires' => time() + $ttl,
+            'path' => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
+            'domain' => defined( 'COOKIE_DOMAIN' ) ? (string) COOKIE_DOMAIN : '',
+            'secure' => is_ssl(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ) );
+        return true;
+    }
+
+    public function authenticate_manager_session(): void {
+        if ( is_user_logged_in() ) return;
+        $token = sanitize_text_field( wp_unslash( $_COOKIE[ self::OTP_SESSION_COOKIE ] ?? '' ) );
+        if ( ! preg_match( '/^[a-f0-9]{64}$/', $token ) ) return;
+        $state = get_transient( $this->otp_session_key( $token ) );
+        if ( ! is_array( $state ) || time() >= (int) ( $state['expires'] ?? 0 ) || ! hash_equals( (string) ( $state['browser'] ?? '' ), $this->otp_browser_hash() ) ) return;
+        $user = get_user_by( 'id', absint( $state['user_id'] ?? 0 ) );
+        if ( $user instanceof WP_User && $this->manager_user_can_login( $user ) && $this->operator_is_approved( $user ) && user_can( $user, self::CAPABILITY ) ) wp_set_current_user( $user->ID );
+    }
+
+    public function manager_portal_page(): void {
+        $portal_path = untrailingslashit( (string) wp_parse_url( $this->manager_portal_url(), PHP_URL_PATH ) );
+        $request_path = untrailingslashit( (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ) );
+        if ( $portal_path !== $request_path ) return;
+        $user = wp_get_current_user();
+        if ( ! $user->exists() || ! $this->otp_session_valid( $user ) ) {
+            wp_safe_redirect( $this->manager_login_url() );
+            exit;
+        }
+        $this->send_private_response_headers();
+        $src = admin_url( 'admin.php?page=grfuel-manager&grfuel_portal=1' );
+        ?><!doctype html><html lang="el"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>GRFuel Manager</title><style>html,body{width:100%;height:100%;margin:0;overflow:hidden;background:#f3f6fb}iframe{display:block;width:100%;height:100%;border:0}</style></head><body><iframe title="GRFuel Manager" src="<?php echo esc_url( $src ); ?>"></iframe></body></html><?php
+        exit;
+    }
+
+    public function manager_logout_page(): void {
+        $logout_path = untrailingslashit( (string) wp_parse_url( home_url( '/grfuel-manager-logout/' ), PHP_URL_PATH ) );
+        $request_path = untrailingslashit( (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ) );
+        if ( $logout_path !== $request_path ) return;
+        check_admin_referer( 'grfuel_manager_logout' );
+        $this->clear_otp_session();
+        wp_safe_redirect( $this->manager_login_url( array( 'logged_out' => '1' ) ) );
+        exit;
+    }
+
+    private function clear_otp_session(): void {
+        $token = sanitize_text_field( wp_unslash( $_COOKIE[ self::OTP_SESSION_COOKIE ] ?? '' ) );
+        if ( preg_match( '/^[a-f0-9]{64}$/', $token ) ) delete_transient( $this->otp_session_key( $token ) );
+        setcookie( self::OTP_SESSION_COOKIE, '', array(
+            'expires' => time() - HOUR_IN_SECONDS,
+            'path' => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
+            'domain' => defined( 'COOKIE_DOMAIN' ) ? (string) COOKIE_DOMAIN : '',
+            'secure' => is_ssl(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ) );
+    }
+
+    public function ajax_refresh_manager_session(): void {
+        check_ajax_referer( 'grfuel_refresh_manager_session', 'nonce' );
+        $user = wp_get_current_user();
+        $token = sanitize_text_field( wp_unslash( $_COOKIE[ self::OTP_SESSION_COOKIE ] ?? '' ) );
+        if ( ! $user->exists() || ! preg_match( '/^[a-f0-9]{64}$/', $token ) || ! $this->otp_session_valid( $user ) ) {
+            wp_send_json_error( array( 'message' => 'Η συνεδρία έχει λήξει. Συνδεθείτε ξανά.' ), 403 );
+        }
+        $ttl = $this->manager_session_seconds();
+        set_transient( $this->otp_session_key( $token ), array( 'user_id' => (int) $user->ID, 'browser' => $this->otp_browser_hash(), 'expires' => time() + $ttl ), $ttl );
+        setcookie( self::OTP_SESSION_COOKIE, $token, array( 'expires' => time() + $ttl, 'path' => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/', 'domain' => defined( 'COOKIE_DOMAIN' ) ? (string) COOKIE_DOMAIN : '', 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Lax' ) );
+        wp_send_json_success( array( 'message' => sprintf( 'Η συνεδρία ανανεώθηκε για %d λεπτά.', (int) ( $ttl / MINUTE_IN_SECONDS ) ), 'expires' => time() + $ttl ) );
+    }
+
+    public function manager_session_button(): void {
+        $user = wp_get_current_user();
+        if ( ! $user->exists() || ! current_user_can( self::CAPABILITY ) || ! $this->otp_session_valid( $user ) ) return;
+        $token = sanitize_text_field( wp_unslash( $_COOKIE[ self::OTP_SESSION_COOKIE ] ?? '' ) );
+        $state = get_transient( $this->otp_session_key( $token ) );
+        $expires = is_array( $state ) ? absint( $state['expires'] ?? 0 ) : 0;
+        ?><button type="button" class="grfuel-session-refresh" data-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'grfuel_refresh_manager_session' ) ); ?>" data-expires="<?php echo esc_attr( $expires ); ?>" data-login-url="<?php echo esc_url( $this->manager_login_url( array( 'notice' => 'otp_required' ) ) ); ?>" title="Ανανέωση διάρκειας συνεδρίας" aria-label="Ανανέωση διάρκειας συνεδρίας"><span class="dashicons dashicons-update"></span><span class="grfuel-session-refresh-label">Ανανέωση</span><time class="grfuel-session-countdown" aria-label="Χρόνος συνεδρίας">--:--:--</time></button><div class="grfuel-session-toast" role="status" aria-live="polite"></div><?php
+    }
+
+    private function otp_rate_limited( string $login ): bool {
+        $key = 'grfuel_otp_rate_' . hash_hmac( 'sha256', $this->client_ip() . '|' . strtolower( $login ), wp_salt( 'auth' ) );
+        $count = (int) get_transient( $key );
+        if ( $count >= 5 ) return true;
+        set_transient( $key, $count + 1, 15 * MINUTE_IN_SECONDS );
+        return false;
+    }
+
+    private function send_otp_email( WP_User $user, string $otp ): bool {
+        $display_name = trim( (string) $user->display_name );
+        $greeting = '' !== $display_name ? 'Γεια σου ' . $display_name . ',' : 'Γεια σου,';
+        $digits = implode( '&nbsp;', array_map( 'esc_html', str_split( $otp ) ) );
+        $login_url = esc_url( $this->manager_login_url() );
+        $message = '<!doctype html><html lang="el"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Κωδικός σύνδεσης GRFuel Manager</title></head>'
+            . '<body style="margin:0;padding:0;background:#f3f6fb;color:#172033;font-family:Arial,Helvetica,sans-serif;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f3f6fb;"><tr><td align="center" style="padding:32px 12px;">'
+            . '<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:560px;background:#ffffff;border:1px solid #dfe5ee;border-radius:18px;">'
+            . '<tr><td style="height:7px;background:#0e3e5f;border-radius:18px 18px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>'
+            . '<tr><td style="padding:34px 34px 12px;text-align:center;"><div style="color:#0e3e5f;font-size:24px;line-height:30px;font-weight:700;">GRFuel Manager</div><div style="margin-top:7px;color:#738098;font-size:13px;line-height:20px;">Ασφαλής επαλήθευση σύνδεσης</div></td></tr>'
+            . '<tr><td style="padding:16px 34px 8px;color:#26324d;font-size:15px;line-height:24px;">' . esc_html( $greeting ) . '<br><br>Χρησιμοποίησε τον παρακάτω κωδικό για να ολοκληρώσεις τη σύνδεσή σου:</td></tr>'
+            . '<tr><td align="center" style="padding:18px 24px;"><div style="display:inline-block;padding:17px 22px;border:1px solid #cfdbee;border-radius:12px;background:#f5f8ff;color:#0e3e5f;font-family:Arial,Helvetica,sans-serif;font-size:30px;line-height:36px;font-weight:700;letter-spacing:8px;">' . $digits . '</div></td></tr>'
+            . '<tr><td style="padding:8px 34px 28px;color:#5d6a80;font-size:13px;line-height:21px;text-align:center;">Ο κωδικός λήγει σε <strong>πέντε λεπτά</strong> και χρησιμοποιείται μόνο μία φορά.<br><a href="' . $login_url . '" style="display:inline-block;margin-top:18px;padding:12px 20px;border-radius:9px;background:#0e3e5f;color:#ffffff;text-decoration:none;font-weight:700;">Μετάβαση στη σελίδα σύνδεσης</a></td></tr>'
+            . '<tr><td style="padding:20px 34px;border-top:1px solid #e7ebf2;color:#8791a3;font-size:11px;line-height:18px;text-align:center;">Αν δεν ζήτησες εσύ τον κωδικό, αγνόησε το μήνυμα. Μην κοινοποιείς ποτέ κωδικούς OTP.</td></tr>'
+            . '</table></td></tr></table></body></html>';
+        return wp_mail(
+            $user->user_email,
+            'Ο κωδικός σύνδεσής σου στο GRFuel Manager',
+            $message,
+            array(
+                'Content-Type: text/html; charset=UTF-8',
+                'From: GRFuel Manager <no-reply@grfuel.gr>',
+                'Reply-To: GRFuel Manager <no-reply@grfuel.gr>',
+            )
+        );
+    }
+
+    public function require_manager_otp_after_standard_login( string $user_login, WP_User $user ): void {
+        unset( $user_login );
+        if ( ! $this->manager_user_requires_otp( $user ) ) return;
+        if ( ! $this->operator_is_approved( $user ) ) {
+            wp_logout();
+            wp_safe_redirect( $this->manager_login_url( array( 'notice' => 'approval_required' ) ) );
+            exit;
+        }
+        if ( ! $this->otp_enabled() ) return;
+        if ( defined( 'GRFUEL_DISABLE_OTP' ) && GRFUEL_DISABLE_OTP ) return;
+        wp_logout();
+        wp_safe_redirect( $this->manager_login_url( array( 'notice' => 'otp_required' ) ) );
+        exit;
+    }
+
+    public function manager_logout_redirect( string $redirect_to, string $requested_redirect_to, WP_User $user ): string {
+        unset( $requested_redirect_to );
+        if ( $user->exists() && $this->manager_user_requires_otp( $user ) ) {
+            $this->clear_otp_session();
+            return $this->manager_login_url( array( 'logged_out' => '1' ) );
+        }
+        return $redirect_to;
+    }
+
+    public function enforce_manager_otp_session(): void {
+        if ( ! is_user_logged_in() ) return;
+        $user = wp_get_current_user();
+        if ( in_array( 'administrator', (array) $user->roles, true ) ) {
+            global $pagenow;
+            $page = sanitize_key( wp_unslash( $_GET['page'] ?? '' ) );
+            $manager_pages = array( 'grfuel-manager', 'sfv-submissions', 'grfuel-new-order', 'grfuel-forms', 'grfuel-prices', 'grfuel-users', 'sfv-settings', 'grfuel-backup', 'sfv-documentation', 'grfuel-changelog' );
+            $post_type = sanitize_key( wp_unslash( $_GET['post_type'] ?? '' ) );
+            if ( 'post.php' === $pagenow ) $post_type = get_post_type( absint( $_GET['post'] ?? 0 ) ) ?: '';
+            $is_manager = ( 'admin.php' === $pagenow && in_array( $page, $manager_pages, true ) ) || ( in_array( $pagenow, array( 'post.php', 'post-new.php', 'edit.php' ), true ) && self::CPT === $post_type );
+            if ( ! $is_manager ) return;
+            if ( $this->otp_session_valid( $user ) ) return;
+            wp_safe_redirect( $this->manager_login_url( array( 'notice' => 'otp_required' ) ) );
+            exit;
+        }
+        if ( ! $this->manager_user_requires_otp( $user ) ) return;
+        if ( ! $this->operator_is_approved( $user ) ) {
+            wp_logout();
+            wp_safe_redirect( $this->manager_login_url( array( 'notice' => 'approval_required' ) ) );
+            exit;
+        }
+        if ( ! $this->otp_enabled() ) return;
+        if ( ( defined( 'GRFUEL_DISABLE_OTP' ) && GRFUEL_DISABLE_OTP ) || $this->otp_session_valid( $user ) ) return;
+        wp_logout();
+        wp_safe_redirect( $this->manager_login_url( array( 'notice' => 'otp_required' ) ) );
+        exit;
+    }
+
+    public function restrict_operator_admin(): void {
+        if ( ! is_user_logged_in() || current_user_can( self::USER_ADMIN_CAPABILITY ) || ! current_user_can( self::CAPABILITY ) ) return;
+        global $pagenow;
+        if ( in_array( $pagenow, array( 'admin-ajax.php', 'admin-post.php' ), true ) ) return;
+        if ( 'options.php' === $pagenow && 'POST' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) && 'sfv_settings_group' === sanitize_key( wp_unslash( $_POST['option_page'] ?? '' ) ) ) return;
+        $allowed_pages = array( 'grfuel-manager', 'sfv-submissions', 'grfuel-new-order', 'grfuel-forms', 'grfuel-prices', 'sfv-settings', 'grfuel-backup', 'sfv-documentation', 'grfuel-changelog' );
+        $page = sanitize_key( wp_unslash( $_GET['page'] ?? '' ) );
+        if ( 'admin.php' === $pagenow && in_array( $page, $allowed_pages, true ) ) return;
+        if ( in_array( $pagenow, array( 'post.php', 'post-new.php', 'edit.php' ), true ) ) {
+            $post_type = sanitize_key( wp_unslash( $_GET['post_type'] ?? '' ) );
+            if ( 'post.php' === $pagenow ) $post_type = get_post_type( absint( $_GET['post'] ?? 0 ) ) ?: '';
+            if ( self::CPT === $post_type ) return;
+        }
+        wp_safe_redirect( admin_url( 'admin.php?page=grfuel-manager' ) );
+        exit;
+    }
+
+    public function protect_operator_role_assignment( array $roles ): array {
+        if ( ! current_user_can( self::USER_ADMIN_CAPABILITY ) ) unset( $roles[ self::OPERATOR_ROLE ] );
+        return $roles;
+    }
+
+    public function manager_login_page(): void {
+        $login_path = untrailingslashit( (string) wp_parse_url( $this->manager_login_url(), PHP_URL_PATH ) );
+        $request_path = untrailingslashit( (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ) );
+        if ( $login_path !== $request_path ) return;
+
+        $this->send_private_response_headers();
+        header( "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" );
+        if ( is_user_logged_in() ) {
+            $current = wp_get_current_user();
+            if ( $this->manager_user_can_login( $current ) && $this->operator_is_approved( $current ) && $this->otp_session_valid( $current ) ) {
+                wp_safe_redirect( $this->manager_portal_url() );
+                exit;
+            }
+        }
+
+        $step = 'credentials';
+        $message = '';
+        $token = '';
+        if ( isset( $_GET['notice'] ) && 'otp_required' === sanitize_key( wp_unslash( $_GET['notice'] ) ) ) {
+            $message = 'Για την ασφάλεια του λογαριασμού, συνδεθείτε μέσω της επαλήθευσης OTP.';
+        } elseif ( isset( $_GET['notice'] ) && 'approval_required' === sanitize_key( wp_unslash( $_GET['notice'] ) ) ) {
+            $message = 'Ο λογαριασμός GRFuel Operator αναμένει έγκριση από Administrator.';
+        } elseif ( ! empty( $_GET['logged_out'] ) ) {
+            $message = 'Αποσυνδεθήκατε με επιτυχία.';
+        }
+
+        if ( 'POST' === strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) ) ) {
+            $action = sanitize_key( wp_unslash( $_POST['grfuel_login_action'] ?? '' ) );
+            if ( 'credentials' === $action ) {
+                if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'grfuel_login_credentials' ) ) {
+                    $message = 'Η σύνδεση δεν ολοκληρώθηκε. Ανανεώστε τη σελίδα και δοκιμάστε ξανά.';
+                } else {
+                    $login = mb_substr( sanitize_text_field( wp_unslash( $_POST['log'] ?? '' ) ), 0, 100 );
+                    $password = mb_substr( (string) wp_unslash( $_POST['pwd'] ?? '' ), 0, 4096 );
+                    $remember = ! empty( $_POST['rememberme'] );
+                    if ( '' === $login || '' === $password || $this->otp_rate_limited( $login ) ) {
+                        $message = 'Τα στοιχεία σύνδεσης δεν είναι έγκυρα ή έγιναν πολλές προσπάθειες.';
+                    } else {
+                        $user = wp_authenticate( $login, $password );
+                        if ( is_wp_error( $user ) || ! $user instanceof WP_User || ! $this->manager_user_can_login( $user ) || ! $this->operator_is_approved( $user ) || ! user_can( $user, self::CAPABILITY ) ) {
+                            $message = 'Τα στοιχεία σύνδεσης δεν είναι έγκυρα ή ο λογαριασμός δεν έχει πρόσβαση.';
+                        } else {
+                            if ( ! $this->otp_enabled() ) {
+                                wp_set_current_user( $user->ID );
+                                $this->create_otp_session( $user, $remember );
+                                // WordPress admin.php performs its own auth-cookie validation
+                                // before rendering inside the Manager portal frame.
+                                wp_set_auth_cookie( $user->ID, $remember, is_ssl() );
+                                wp_safe_redirect( $this->manager_portal_url() );
+                                exit;
+                            }
+                            try {
+                                $otp = (string) random_int( 100000, 999999 );
+                                $token = bin2hex( random_bytes( 24 ) );
+                            } catch ( Throwable $error ) {
+                                $otp = '';
+                                $token = '';
+                            }
+                            if ( '' === $otp || '' === $token ) {
+                                $message = 'Δεν ήταν δυνατή η δημιουργία κωδικού ασφαλείας.';
+                            } else {
+                                $state = array(
+                                    'user_id' => (int) $user->ID,
+                                    'otp_hash' => hash_hmac( 'sha256', $otp, wp_salt( 'auth' ) . $token ),
+                                    'attempts' => 0,
+                                    'remember' => $remember,
+                                    'browser' => $this->otp_browser_hash(),
+                                    'expires' => time() + self::OTP_TTL,
+                                );
+                                set_transient( $this->otp_state_key( $token ), $state, self::OTP_TTL );
+                                $sent = $this->send_otp_email( $user, $otp );
+                                if ( $sent ) {
+                                    $step = 'otp';
+                                    $message = 'Στείλαμε έναν εξαψήφιο κωδικό στο email του λογαριασμού.';
+                                } else {
+                                    delete_transient( $this->otp_state_key( $token ) );
+                                    $token = '';
+                                    $message = 'Δεν ήταν δυνατή η αποστολή του κωδικού. Επικοινωνήστε με τον διαχειριστή.';
+                                }
+                            }
+                        }
+                    }
+                }
+            } elseif ( 'otp' === $action ) {
+                $step = 'otp';
+                $token = sanitize_text_field( wp_unslash( $_POST['otp_token'] ?? '' ) );
+                $otp = preg_replace( '/\D+/', '', (string) wp_unslash( $_POST['otp'] ?? '' ) ) ?? '';
+                if ( ! isset( $_POST['_wpnonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ), 'grfuel_login_otp' ) || ! preg_match( '/^[a-f0-9]{48}$/', $token ) || ! preg_match( '/^\d{6}$/', $otp ) ) {
+                    $message = 'Ο κωδικός δεν είναι έγκυρος ή έχει λήξει.';
+                } else {
+                    $state_key = $this->otp_state_key( $token );
+                    $state = get_transient( $state_key );
+                    if ( ! is_array( $state ) || time() > absint( $state['expires'] ?? 0 ) || ! hash_equals( (string) ( $state['browser'] ?? '' ), $this->otp_browser_hash() ) || (int) ( $state['attempts'] ?? 0 ) >= self::OTP_MAX_ATTEMPTS ) {
+                        delete_transient( $state_key );
+                        $message = 'Ο κωδικός δεν είναι έγκυρος ή έχει λήξει.';
+                    } else {
+                        $state['attempts'] = (int) $state['attempts'] + 1;
+                        set_transient( $state_key, $state, max( 1, absint( $state['expires'] ) - time() ) );
+                        $expected = hash_hmac( 'sha256', $otp, wp_salt( 'auth' ) . $token );
+                        $user = get_user_by( 'id', absint( $state['user_id'] ?? 0 ) );
+                        if ( ! hash_equals( (string) ( $state['otp_hash'] ?? '' ), $expected ) || ! $user instanceof WP_User || ! $this->manager_user_can_login( $user ) || ! $this->operator_is_approved( $user ) || ! user_can( $user, self::CAPABILITY ) ) {
+                            if ( (int) $state['attempts'] >= self::OTP_MAX_ATTEMPTS ) delete_transient( $state_key );
+                            $message = 'Ο κωδικός δεν είναι έγκυρος ή έχει λήξει.';
+                        } else {
+                            delete_transient( $state_key );
+                            wp_set_current_user( $user->ID );
+                            $remember = ! empty( $state['remember'] );
+                            if ( ! $this->create_otp_session( $user, $remember ) ) {
+                                wp_set_current_user( 0 );
+                                $message = 'Δεν ήταν δυνατή η δημιουργία ασφαλούς συνεδρίας.';
+                            } else {
+                                // Keep the dedicated Manager session as the access gate, while
+                                // also satisfying WordPress' internal admin auth_redirect().
+                                wp_set_auth_cookie( $user->ID, $remember, is_ssl() );
+                                update_user_meta( $user->ID, 'grfuel_last_otp_login', time() );
+                                wp_safe_redirect( $this->manager_portal_url() );
+                                exit;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        status_header( 200 );
+        ?><!doctype html><html lang="el"><head><meta charset="<?php echo esc_attr( get_option( 'blog_charset', 'UTF-8' ) ); ?>"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Σύνδεση · GRFuel Manager</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Geom:ital,wght@0,300..900;1,300..900&display=swap" rel="stylesheet"><style>*{box-sizing:border-box}body{margin:0;min-height:100vh;display:grid;place-items:center;padding:22px;background:#f3f6fb;color:#172033;font-family:"Geom",Arial,sans-serif}.card{width:min(440px,100%);padding:32px;border:1px solid #dfe5ee;border-radius:20px;background:#fff;box-shadow:0 22px 70px rgba(15,23,42,.12)}.brand{margin-bottom:24px;color:#0e3e5f;font-size:22px;font-weight:800}.brand span{display:block;margin-top:5px;color:#738098;font-size:12px;font-weight:500}.notice{margin-bottom:18px;padding:12px 14px;border-radius:10px;background:#f0f5ff;color:#334e7d;font-size:13px;line-height:1.5}label{display:grid;gap:7px;margin-bottom:15px;font-size:13px;font-weight:700}input[type=text],input[type=password]{width:100%;min-height:48px;padding:10px 13px;border:1px solid #cfd7e4;border-radius:10px;font-size:16px}input:focus{border-color:#2563eb;outline:3px solid rgba(37,99,235,.13)}.remember{display:flex;align-items:center;gap:8px;font-weight:500}.otp-fieldset{margin:0 0 20px;padding:0;border:0}.otp-fieldset legend{margin-bottom:10px;font-size:13px;font-weight:700}.otp-boxes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:9px}.otp-digit{width:100%;min-width:0;height:56px;padding:0!important;border:1px solid #cfd7e4;border-radius:10px;text-align:center;font-family:"Geom",Arial,sans-serif;font-size:24px!important;font-weight:700}.otp-digit:focus{border-color:#2563eb;outline:3px solid rgba(37,99,235,.13)}(max-width:420px){.card{padding:24px 18px}.otp-boxes{gap:6px}.otp-digit{height:50px}}.button{width:100%;min-height:48px;border:0;border-radius:10px;background:#0e3e5f;color:#fff;font-size:14px;font-weight:800;cursor:pointer}.help{margin:18px 0 0;text-align:center}.help a{color:#52637d;font-size:12px}</style></head><body><main class="card"><div class="brand">GRFuel Manager<span>Ασφαλής σύνδεση με email OTP</span></div><?php if ( '' !== $message ) : ?><div class="notice" role="status"><?php echo esc_html( $message ); ?></div><?php endif; ?><?php if ( 'otp' === $step && '' !== $token ) : ?><form method="post" autocomplete="one-time-code"><input type="hidden" name="grfuel_login_action" value="otp"><input type="hidden" name="otp_token" value="<?php echo esc_attr( $token ); ?>"><?php wp_nonce_field( 'grfuel_login_otp' ); ?><fieldset class="otp-fieldset"><legend>Κωδικός μίας χρήσης</legend><div class="otp-boxes" data-otp-boxes><input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="1ο ψηφίο" required autofocus><input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="2ο ψηφίο" required><input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="3ο ψηφίο" required><input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="4ο ψηφίο" required><input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="5ο ψηφίο" required><input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="6ο ψηφίο" required></div><input type="hidden" name="otp" data-otp-value></fieldset><button class="button" type="submit">Επιβεβαίωση και σύνδεση</button></form><p class="help"><a href="<?php echo esc_url( $this->manager_login_url() ); ?>">Νέα αποστολή κωδικού</a></p><?php else : ?><form method="post"><input type="hidden" name="grfuel_login_action" value="credentials"><?php wp_nonce_field( 'grfuel_login_credentials' ); ?><label>Email ή όνομα χρήστη<input type="text" name="log" autocomplete="username" maxlength="100" required autofocus></label><label>Κωδικός πρόσβασης<input type="password" name="pwd" autocomplete="current-password" maxlength="4096" required></label><label class="remember"><input type="checkbox" name="rememberme" value="1"> Να παραμείνω συνδεδεμένος</label><button class="button" type="submit">Συνέχεια με OTP</button></form><p class="help"><a href="<?php echo esc_url( wp_lostpassword_url() ); ?>">Ξέχασα τον κωδικό μου</a></p><?php endif; ?></main><script>(function(){var wrap=document.querySelector("[data-otp-boxes]"),hidden=document.querySelector("[data-otp-value]");if(!wrap||!hidden)return;var boxes=Array.prototype.slice.call(wrap.querySelectorAll(".otp-digit"));function sync(){hidden.value=boxes.map(function(box){return box.value;}).join("");}function fill(value,start){var digits=String(value).replace(/\D/g,"").slice(0,6-start).split("");digits.forEach(function(digit,index){boxes[start+index].value=digit;});sync();var next=Math.min(start+digits.length,5);boxes[next].focus();boxes[next].select();}boxes.forEach(function(box,index){box.addEventListener("input",function(){var value=box.value.replace(/\D/g,"");box.value="";if(value)fill(value,index);else sync();});box.addEventListener("keydown",function(event){if(event.key==="Backspace"&&!box.value&&index>0){boxes[index-1].value="";boxes[index-1].focus();sync();}if(event.key==="ArrowLeft"&&index>0){event.preventDefault();boxes[index-1].focus();}if(event.key==="ArrowRight"&&index<5){event.preventDefault();boxes[index+1].focus();}});box.addEventListener("paste",function(event){event.preventDefault();fill((event.clipboardData||window.clipboardData).getData("text"),index);});});var form=wrap.closest("form");if(form)form.addEventListener("submit",sync);})();</script></body></html><?php
+        exit;
+    }
+
+    private function require_post_request(): void {
+        $method = strtoupper( sanitize_text_field( wp_unslash( $_SERVER['REQUEST_METHOD'] ?? '' ) ) );
+        if ( 'POST' !== $method ) {
+            status_header( 405 );
+            header( 'Allow: POST' );
+            wp_die( esc_html__( 'This action requires a POST request.', 'secure-form-vault' ) );
+        }
+    }
+
+    private function send_private_response_headers(): void {
+        nocache_headers();
+        header( 'X-Content-Type-Options: nosniff' );
+        header( 'Referrer-Policy: no-referrer' );
+        header( 'X-Frame-Options: SAMEORIGIN' );
+        header( 'X-Robots-Tag: noindex, nofollow, noarchive', true );
     }
 
     private function admin_icon(): string {
@@ -216,6 +639,15 @@ final class SFV_Plugin {
                 'supports' => array( 'title' ),
                 'map_meta_cap' => true,
                 'capability_type' => array( 'grfuel_form', 'grfuel_forms' ),
+                'capabilities' => array(
+                    'edit_post' => 'edit_grfuel_form', 'read_post' => 'read_grfuel_form', 'delete_post' => 'delete_grfuel_form',
+                    'edit_posts' => 'edit_grfuel_forms', 'edit_others_posts' => 'edit_others_grfuel_forms',
+                    'publish_posts' => 'publish_grfuel_forms', 'read_private_posts' => 'read_private_grfuel_forms',
+                    'delete_posts' => 'delete_grfuel_forms', 'delete_private_posts' => 'delete_private_grfuel_forms',
+                    'delete_published_posts' => 'delete_published_grfuel_forms', 'delete_others_posts' => 'delete_others_grfuel_forms',
+                    'edit_private_posts' => 'edit_private_grfuel_forms', 'edit_published_posts' => 'edit_published_grfuel_forms',
+                    'create_posts' => 'edit_grfuel_forms',
+                ),
             )
         );
     }
@@ -340,6 +772,7 @@ final class SFV_Plugin {
     }
 
     public function create_form_from_manager(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) {
             wp_die( esc_html__( 'Δεν έχετε δικαίωμα για αυτή την ενέργεια.', 'secure-form-vault' ) );
         }
@@ -363,6 +796,7 @@ final class SFV_Plugin {
     }
 
     public function delete_form_from_manager(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) {
             wp_die( esc_html__( 'Δεν έχετε δικαίωμα για αυτή την ενέργεια.', 'secure-form-vault' ) );
         }
@@ -387,6 +821,13 @@ final class SFV_Plugin {
     public function register_front_assets(): void {
         wp_register_style( 'sfv-front', plugins_url( 'assets/front.css', __FILE__ ), array(), self::VERSION );
         wp_register_script( 'sfv-front', plugins_url( 'assets/front.js', __FILE__ ), array( 'jquery', 'jquery-ui-datepicker' ), self::VERSION, true );
+        // Register shared runtime data before a shortcode or theme can enqueue
+        // and print the frontend bundle. Late localization from inside the
+        // shortcode is unreliable with builders that render content in stages.
+        wp_localize_script( 'sfv-front', 'sfvFront', array(
+            'ajaxUrl' => admin_url( 'admin-ajax.php' ),
+            'deliveryLocations' => $this->delivery_locations(),
+        ) );
         wp_localize_script( 'sfv-front', 'grfuelChart', array( 'ajaxUrl' => admin_url( 'admin-ajax.php' ) ) );
         wp_register_script( 'sfv-turnstile', 'https://challenges.cloudflare.com/turnstile/v0/api.js', array(), null, true );
     }
@@ -467,7 +908,7 @@ final class SFV_Plugin {
                 'key' => $key,
                 'type' => $type,
                 'label' => 'checkbox' === $type
-                    ? wp_kses( wp_targeted_link_rel( (string) ( $field['label'] ?? '' ) ), array( 'a' => array( 'href' => true, 'target' => true, 'rel' => true ) ) )
+                    ? $this->sanitize_checkbox_label( (string) ( $field['label'] ?? '' ) )
                     : sanitize_text_field( $field['label'] ?? '' ),
                 'checkbox_value' => mb_substr( sanitize_text_field( $field['checkbox_value'] ?? __( 'Συμφωνία με την Πολιτική Απορρήτου', 'secure-form-vault' ) ), 0, 300 ),
                 'content' => 'content_text' === $type ? mb_substr( sanitize_textarea_field( $field['content'] ?? '' ), 0, 10000 ) : sanitize_text_field( $field['content'] ?? '' ),
@@ -550,7 +991,6 @@ final class SFV_Plugin {
         }
         wp_enqueue_style( 'sfv-front' );
         wp_enqueue_script( 'sfv-front' );
-        wp_localize_script( 'sfv-front', 'sfvFront', array( 'ajaxUrl' => admin_url( 'admin-ajax.php' ), 'deliveryLocations' => $this->delivery_locations() ) );
         $settings = $this->settings();
         wp_add_inline_style( 'sfv-front', $this->appearance_css( $settings ) );
         $has_turnstile = $this->has_field_type( $fields, 'turnstile' );
@@ -564,6 +1004,9 @@ final class SFV_Plugin {
         if ( $status && $status_form === $form_id ) {
             $confirmation = wp_parse_args( get_post_meta( $form_id, '_sfv_confirmation', true ), array( 'success_message' => __( 'Ευχαριστούμε. Το αίτημα υποβλήθηκε με επιτυχία.', 'secure-form-vault' ) ) );
             $message = 'success' === $status ? (string) $confirmation['success_message'] : __( 'The form could not be submitted. Please check the fields and try again.', 'secure-form-vault' );
+            if ( 'error' === $status && defined( 'WP_DEBUG' ) && WP_DEBUG && isset( $_GET['sfv_error'] ) ) {
+                $message .= ' [' . sanitize_key( wp_unslash( $_GET['sfv_error'] ) ) . ']';
+            }
             printf( '<div class="sfv-notice sfv-%1$s" role="status">%2$s</div>', esc_attr( $status ), esc_html( $message ) );
         }
         ?>
@@ -675,7 +1118,7 @@ final class SFV_Plugin {
         if ( 'turnstile' === $type ) {
             if ( ! empty( $settings['site_key'] ) && ! empty( $settings['secret_key'] ) ) {
                 printf( '<div class="sfv-field %1$s"><div class="cf-turnstile" data-sitekey="%2$s" data-action="sfv_form_%3$d"></div></div>', esc_attr( $classes ), esc_attr( $settings['site_key'] ), absint( $form_id ) );
-            } elseif ( current_user_can( self::CAPABILITY ) ) {
+            } elseif ( current_user_can( 'manage_options' ) ) {
                 printf( '<div class="sfv-field %1$s"><div class="uk-alert-warning" uk-alert>%2$s</div></div>', esc_attr( $classes ), esc_html__( 'Turnstile keys are not configured.', 'secure-form-vault' ) );
             }
             return;
@@ -712,7 +1155,7 @@ final class SFV_Plugin {
                 printf( '<div class="sfv-message-only-notice" role="status" aria-live="polite" hidden><span class="sfv-message-only-icon" aria-hidden="true">!</span><p>%s</p></div>', esc_html( $message_text ) );
             }
         } elseif ( 'checkbox' === $type ) {
-            $checkbox_label = wp_kses( wp_targeted_link_rel( (string) $label ), array( 'a' => array( 'href' => true, 'target' => true, 'rel' => true ) ) );
+            $checkbox_label = $this->sanitize_checkbox_label( (string) $label );
             printf( '<label class="uk-form-label"><input class="uk-checkbox" id="sfv-%1$s" type="checkbox" name="%2$s" value="1"%3$s> <span>%4$s%5$s</span></label>', esc_attr( $key ), esc_attr( $name ), $required_attr, $checkbox_label, $required ? ' *' : '' );
         } else {
             printf( '<label class="%1$s" for="%2$s">%3$s%4$s</label><div class="uk-form-controls">', esc_attr( $label_class ), esc_attr( $label_for ), esc_html( $label ), $required && ! $hide_label ? ' *' : '' );
@@ -870,6 +1313,35 @@ final class SFV_Plugin {
         return array( 'width' => $width, 'breakpoint' => $breakpoint );
     }
 
+    /**
+     * Preserve the limited HTML allowed in checkbox labels and protect links
+     * opening a new tab without relying on the deprecated WordPress helper.
+     */
+    private function sanitize_checkbox_label( string $label ): string {
+        $label = wp_kses(
+            $label,
+            array( 'a' => array( 'href' => true, 'target' => true, 'rel' => true ) )
+        );
+
+        return (string) preg_replace_callback(
+            '/<a\b[^>]*>/i',
+            static function ( array $match ): string {
+                $tag = $match[0];
+                if ( ! preg_match( '/\btarget\s*=\s*(["\'])_blank\1/i', $tag ) ) {
+                    return $tag;
+                }
+                if ( preg_match( '/\brel\s*=\s*(["\'])(.*?)\1/i', $tag, $rel_match ) ) {
+                    $tokens = preg_split( '/\s+/', strtolower( trim( $rel_match[2] ) ) ) ?: array();
+                    $tokens = array_values( array_unique( array_filter( array_merge( $tokens, array( 'noopener', 'noreferrer' ) ) ) ) );
+                    $replacement = 'rel=' . $rel_match[1] . implode( ' ', $tokens ) . $rel_match[1];
+                    return (string) preg_replace( '/\brel\s*=\s*(["\'])(.*?)\1/i', $replacement, $tag, 1 );
+                }
+                return substr( $tag, 0, -1 ) . ' rel="noopener noreferrer">';
+            },
+            $label
+        );
+    }
+
     private function layout_classes( $layout, $legacy_widths = array() ): array {
         $layout = $this->sanitize_layout( $layout, $legacy_widths );
         return array( 'uk-width-1-1', 'uk-width-' . $layout['width'] . '@' . $layout['breakpoint'] );
@@ -892,34 +1364,50 @@ final class SFV_Plugin {
     }
 
     public function handle_submission(): void {
+        $this->require_post_request();
+        $content_length = absint( $_SERVER['CONTENT_LENGTH'] ?? 0 );
+        if ( $content_length > 256 * 1024 ) {
+            status_header( 413 );
+            wp_die( esc_html__( 'The submitted request is too large.', 'secure-form-vault' ) );
+        }
         $form_id = isset( $_POST['form_id'] ) ? absint( $_POST['form_id'] ) : 0;
         $redirect = wp_get_referer() ?: home_url( '/' );
-        $fail = function () use ( $redirect, $form_id ): void {
-            wp_safe_redirect( add_query_arg( array( 'sfv_status' => 'error', 'sfv_form' => $form_id ), $redirect ) );
+        $fail = function ( string $reason = 'validation' ) use ( $redirect, $form_id ): void {
+            $args = array( 'sfv_status' => 'error', 'sfv_form' => $form_id );
+            if ( defined( 'WP_DEBUG' ) && WP_DEBUG ) {
+                $args['sfv_error'] = sanitize_key( $reason );
+            }
+            wp_safe_redirect( add_query_arg( $args, $redirect ) );
             exit;
         };
         if ( ! $form_id || self::CPT !== get_post_type( $form_id ) || 'publish' !== get_post_status( $form_id ) ) {
-            $fail();
+            $fail( 'invalid_form' );
         }
         $nonce = isset( $_POST['sfv_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['sfv_nonce'] ) ) : '';
         if ( ! wp_verify_nonce( $nonce, 'sfv_submit_' . $form_id ) ) {
-            $fail();
+            $fail( 'nonce' );
         }
         if ( ! empty( $_POST['sfv_website'] ) ) {
-            $fail();
+            $fail( 'honeypot' );
         }
         $started = isset( $_POST['sfv_started'] ) ? absint( $_POST['sfv_started'] ) : 0;
         if ( ! $started || time() - $started < 2 || time() - $started > DAY_IN_SECONDS ) {
-            $fail();
-        }
-        if ( $this->is_rate_limited( $form_id ) ) {
-            $fail();
+            $fail( 'timing' );
         }
         $fields = get_post_meta( $form_id, '_sfv_fields', true );
-        if ( $this->has_field_type( (array) $fields, 'turnstile' ) && ! $this->verify_turnstile( $form_id ) ) {
-            $fail();
-        }
+        $fields = is_array( $fields ) ? $fields : array();
         $posted = isset( $_POST['sfv_fields'] ) && is_array( $_POST['sfv_fields'] ) ? wp_unslash( $_POST['sfv_fields'] ) : array();
+        if ( count( $fields ) > 50 || count( $posted ) > 60 ) {
+            $fail( 'field_limits' );
+        }
+        foreach ( $posted as $posted_key => $posted_value ) {
+            if ( sanitize_key( (string) $posted_key ) !== (string) $posted_key || is_array( $posted_value ) || is_object( $posted_value ) ) {
+                $fail( 'posted_shape' );
+            }
+        }
+        if ( $this->has_field_type( (array) $fields, 'turnstile' ) && ! $this->verify_turnstile( $form_id ) ) {
+            $fail( 'turnstile' );
+        }
         $payload = array();
         foreach ( (array) $fields as $field ) {
             $key = sanitize_key( $field['key'] ?? '' );
@@ -929,13 +1417,13 @@ final class SFV_Plugin {
             }
             $raw = $posted[ $key ] ?? '';
             if ( is_array( $raw ) ) {
-                $fail();
+                $fail( 'array_' . $key );
             }
             $raw = (string) $raw;
             switch ( $type ) {
                 case 'email':
                     $value = sanitize_email( $raw );
-                    if ( '' !== $raw && ! is_email( $value ) ) { $fail(); }
+                    if ( '' !== $raw && ! is_email( $value ) ) { $fail( 'email_' . $key ); }
                     break;
                 case 'phone':
                     $value = preg_replace( '/[^0-9+().\-\s]/', '', $raw );
@@ -943,7 +1431,7 @@ final class SFV_Plugin {
                     break;
                 case 'number':
                     $value = str_replace( ',', '.', sanitize_text_field( $raw ) );
-                    if ( '' !== $value && ! is_numeric( $value ) ) { $fail(); }
+                    if ( '' !== $value && ! is_numeric( $value ) ) { $fail( 'number_' . $key ); }
                     $value = '' === $value ? '' : (string) max( 0, (float) $value );
                     break;
                 case 'date':
@@ -951,7 +1439,7 @@ final class SFV_Plugin {
                     if ( '' !== $value ) {
                         $date = DateTimeImmutable::createFromFormat( '!Y-m-d', $value );
                         $errors = DateTimeImmutable::getLastErrors();
-                        if ( false === $date || ( is_array( $errors ) && ( $errors['warning_count'] > 0 || $errors['error_count'] > 0 ) ) || $date->format( 'Y-m-d' ) !== $value ) { $fail(); }
+                        if ( false === $date || ( is_array( $errors ) && ( $errors['warning_count'] > 0 || $errors['error_count'] > 0 ) ) || $date->format( 'Y-m-d' ) !== $value ) { $fail( 'date_' . $key ); }
                     }
                     break;
                 case 'textarea':
@@ -960,20 +1448,28 @@ final class SFV_Plugin {
                     break;
                 case 'delivery_region':
                     $value = sanitize_text_field( $raw );
-                    if ( '' !== $value && ! array_key_exists( $value, $this->delivery_locations() ) ) { $fail(); }
+                    if ( '' !== $value && ! array_key_exists( $value, $this->delivery_locations() ) ) { $fail( 'region_' . $key ); }
                     break;
                 case 'delivery_city':
                     $value = sanitize_text_field( $raw );
                     $region_key = sanitize_key( $field['location_region_field'] ?? '' );
+                    if ( '' === $region_key ) {
+                        foreach ( $fields as $candidate_field ) {
+                            if ( is_array( $candidate_field ) && 'delivery_region' === sanitize_key( $candidate_field['type'] ?? '' ) ) {
+                                $region_key = sanitize_key( $candidate_field['key'] ?? '' );
+                                break;
+                            }
+                        }
+                    }
                     $region_value = sanitize_text_field( (string) ( $posted[ $region_key ] ?? '' ) );
                     $allowed_cities = $this->delivery_locations()[ $region_value ] ?? array();
-                    if ( '' !== $value && ! in_array( $value, $allowed_cities, true ) ) { $fail(); }
+                    if ( '' !== $value && ! in_array( $value, $allowed_cities, true ) ) { $fail( 'city_' . $key ); }
                     break;
                 case 'dropdown':
                 case 'radio':
                     $value = sanitize_text_field( $raw );
-                    if ( '' !== $value && ! in_array( $value, (array) ( $field['options'] ?? array() ), true ) ) { $fail(); }
-                    if ( 'radio' === $type && ! empty( $field['message_only_enabled'] ) && $value === (string) ( $field['message_only_option'] ?? '' ) ) { $fail(); }
+                    if ( '' !== $value && ! in_array( $value, (array) ( $field['options'] ?? array() ), true ) ) { $fail( 'choice_' . $key ); }
+                    if ( 'radio' === $type && ! empty( $field['message_only_enabled'] ) && $value === (string) ( $field['message_only_option'] ?? '' ) ) { $fail( 'unavailable_' . $key ); }
                     break;
                 case 'checkbox':
                     $value = '1' === $raw ? mb_substr( sanitize_text_field( $field['checkbox_value'] ?? __( 'Συμφωνία με την Πολιτική Απορρήτου', 'secure-form-vault' ) ), 0, 300 ) : '';
@@ -983,7 +1479,7 @@ final class SFV_Plugin {
             }
             $visible = $this->dependency_matches( $field['dependency'] ?? array(), $posted );
             if ( $visible && ! empty( $field['required'] ) && '' === $value ) {
-                $fail();
+                $fail( 'required_' . $key );
             }
             $payload[ $key ] = array( 'label' => sanitize_text_field( wp_strip_all_tags( (string) ( $field['label'] ?? $key ) ) ), 'value' => $value );
         }
@@ -1000,6 +1496,12 @@ final class SFV_Plugin {
             );
         }
 
+        // Consume the legitimate submission quota only after the request has
+        // passed Turnstile and the complete server-side form schema validation.
+        if ( $this->is_rate_limited( $form_id ) ) {
+            $fail( 'rate_limit' );
+        }
+
         global $wpdb;
         $inserted = $wpdb->insert(
             $this->table(),
@@ -1013,7 +1515,7 @@ final class SFV_Plugin {
             array( '%d', '%s', '%s', '%s', '%s' )
         );
         if ( false === $inserted ) {
-            $fail();
+            $fail( 'database' );
         }
         $submission_id = (int) $wpdb->insert_id;
         $this->send_confirmation_email( $form_id, $submission_id, $payload );
@@ -1088,6 +1590,7 @@ final class SFV_Plugin {
     }
 
     public function ajax_push_test(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) wp_send_json_error( array( 'message' => 'Δεν επιτρέπεται η πρόσβαση.' ), 403 );
         check_ajax_referer( 'grfuel_push_test', 'nonce' );
         $result = $this->send_onesignal_push(
@@ -1492,13 +1995,25 @@ final class SFV_Plugin {
 
     public function ajax_price_chart(): void {
         $slug = sanitize_title( wp_unslash( $_REQUEST['product'] ?? '' ) );
-        $days = max( 7, min( 3650, absint( $_REQUEST['days'] ?? 30 ) ) );
+        $days = max( 7, min( 365, absint( $_REQUEST['days'] ?? 30 ) ) );
         $height = max( 140, min( 420, absint( $_REQUEST['height'] ?? 220 ) ) );
         if ( '' === $slug ) wp_send_json_error( array( 'message' => 'Missing product.' ), 400 );
-        wp_send_json_success( array( 'html' => $this->price_chart_svg( $this->product_history( $slug, $days ), $height ), 'days' => $days ) );
+        $known = false;
+        foreach ( (array) $this->settings()['daily_prices'] as $product ) {
+            if ( $slug === sanitize_title( (string) ( $product['slug'] ?? '' ) ) ) { $known = true; break; }
+        }
+        if ( ! $known ) wp_send_json_error( array( 'message' => 'Unknown product.' ), 404 );
+        $cache_key = 'grfuel_chart_' . md5( $slug . '|' . $days . '|' . $height );
+        $html = get_transient( $cache_key );
+        if ( ! is_string( $html ) || '' === $html ) {
+            $html = $this->price_chart_svg( $this->product_history( $slug, $days ), $height );
+            set_transient( $cache_key, $html, 15 * MINUTE_IN_SECONDS );
+        }
+        wp_send_json_success( array( 'html' => $html, 'days' => $days ) );
     }
 
     public function add_price_history_entry(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
         check_admin_referer( 'grfuel_add_price_entry' );
         $slug = sanitize_title( wp_unslash( $_POST['product'] ?? '' ) );
@@ -1532,7 +2047,34 @@ final class SFV_Plugin {
         exit;
     }
 
+    public function save_daily_prices(): void {
+        $this->require_post_request();
+        if ( ! current_user_can( self::CAPABILITY ) ) wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
+        check_admin_referer( 'grfuel_save_daily_prices' );
+        $input = isset( $_POST[ self::OPTION ] ) && is_array( $_POST[ self::OPTION ] ) ? wp_unslash( $_POST[ self::OPTION ] ) : array();
+        $settings = $this->settings();
+        $daily_prices = array();
+        foreach ( array_slice( (array) ( $input['daily_prices'] ?? array() ), 0, 20 ) as $row ) {
+            if ( ! is_array( $row ) ) continue;
+            $name = mb_substr( sanitize_text_field( $row['name'] ?? '' ), 0, 100 );
+            $slug = sanitize_title( $row['slug'] ?? $name );
+            $price = max( 0, (float) str_replace( ',', '.', (string) ( $row['price'] ?? 0 ) ) );
+            $unit = mb_substr( sanitize_text_field( $row['unit'] ?? 'λίτρο' ), 0, 40 );
+            if ( '' !== $name && '' !== $slug ) $daily_prices[] = array( 'name' => $name, 'slug' => $slug, 'price' => number_format( $price, 3, '.', '' ), 'unit' => $unit ?: 'λίτρο' );
+        }
+        $this->record_daily_price_history( (array) ( $settings['daily_prices'] ?? array() ), $daily_prices );
+        $settings['daily_prices'] = $daily_prices;
+        $settings['chart_default_days'] = max( 7, min( 3650, absint( $input['chart_default_days'] ?? 30 ) ) );
+        $settings['chart_max_days'] = max( $settings['chart_default_days'], min( 3650, absint( $input['chart_max_days'] ?? 365 ) ) );
+        $settings['chart_frontend_controls'] = empty( $input['chart_frontend_controls'] ) ? 0 : 1;
+        $settings['chart_background'] = 'light' === sanitize_key( $input['chart_background'] ?? 'transparent' ) ? 'light' : 'transparent';
+        update_option( self::OPTION, $settings, false );
+        wp_safe_redirect( add_query_arg( 'saved', '1', admin_url( 'admin.php?page=grfuel-prices' ) ) );
+        exit;
+    }
+
     public function delete_price_history_entry(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
         $slug = sanitize_title( wp_unslash( $_POST['product'] ?? '' ) );
         $recorded_at = sanitize_text_field( wp_unslash( $_POST['recorded_at'] ?? '' ) );
@@ -1552,6 +2094,7 @@ final class SFV_Plugin {
     }
 
     public function ajax_check_orders(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) wp_send_json_error( null, 403 );
         check_ajax_referer( 'grfuel_check_orders', 'nonce' );
         global $wpdb;
@@ -1599,7 +2142,7 @@ final class SFV_Plugin {
         return wp_parse_args(
             (array) get_option( self::OPTION, array() ),
             array(
-                'site_key' => '', 'secret_key' => '', 'rate_limit' => 5,
+                'site_key' => '', 'secret_key' => '', 'rate_limit' => 5, 'retention_days' => 0, 'manager_session_minutes' => 480,
                 'label_color' => '#202a40', 'label_font' => 'inherit', 'label_size' => 14, 'label_weight' => '600',
                 'placeholder_color' => '#8a93a6', 'placeholder_font' => 'inherit', 'placeholder_size' => 14, 'placeholder_weight' => '400',
                 'field_text_color' => '#202a40', 'field_background' => '#ffffff', 'field_border_color' => '#dfe4ed',
@@ -1658,7 +2201,7 @@ final class SFV_Plugin {
     private function verify_turnstile( int $form_id ): bool {
         $settings = $this->settings();
         if ( empty( $settings['site_key'] ) || empty( $settings['secret_key'] ) ) {
-            return true;
+            return false;
         }
         $token = isset( $_POST['cf-turnstile-response'] ) ? sanitize_text_field( wp_unslash( $_POST['cf-turnstile-response'] ) ) : '';
         if ( '' === $token ) {
@@ -1677,7 +2220,13 @@ final class SFV_Plugin {
             return false;
         }
         $body = json_decode( wp_remote_retrieve_body( $response ), true );
-        return is_array( $body ) && ! empty( $body['success'] ) && ( empty( $body['action'] ) || 'sfv_form_' . $form_id === $body['action'] );
+        $expected_host = strtolower( rtrim( (string) wp_parse_url( home_url( '/' ), PHP_URL_HOST ), '.' ) );
+        $actual_host = is_array( $body ) ? strtolower( rtrim( sanitize_text_field( (string) ( $body['hostname'] ?? '' ) ), '.' ) ) : '';
+        return is_array( $body )
+            && ! empty( $body['success'] )
+            && hash_equals( 'sfv_form_' . $form_id, (string) ( $body['action'] ?? '' ) )
+            && '' !== $expected_host
+            && hash_equals( $expected_host, $actual_host );
     }
 
     private function client_ip(): string {
@@ -1700,6 +2249,78 @@ final class SFV_Plugin {
         return false;
     }
 
+    private function payload_contains_email( array $payload, string $email ): bool {
+        foreach ( $payload as $item ) {
+            if ( ! is_array( $item ) ) continue;
+            $candidate = sanitize_email( (string) ( $item['value'] ?? '' ) );
+            if ( '' !== $candidate && hash_equals( strtolower( $email ), strtolower( $candidate ) ) ) return true;
+        }
+        return false;
+    }
+
+    public function run_retention(): void {
+        $days = absint( $this->settings()['retention_days'] ?? 0 );
+        if ( $days < 1 ) return;
+        global $wpdb;
+        $cutoff = gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS );
+        do {
+            $ids = array_map( 'absint', $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$this->table()} WHERE submitted_at < %s ORDER BY id ASC LIMIT 500", $cutoff ) ) );
+            if ( ! $ids ) break;
+            $placeholders = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+            $wpdb->query( $wpdb->prepare( "DELETE FROM {$this->table()} WHERE id IN ({$placeholders})", $ids ) );
+        } while ( 500 === count( $ids ) );
+    }
+
+    public function register_privacy_exporter( array $exporters ): array {
+        $exporters['grfuel-manager'] = array(
+            'exporter_friendly_name' => __( 'GRFuel Manager submissions', 'secure-form-vault' ),
+            'callback' => array( $this, 'privacy_exporter' ),
+        );
+        return $exporters;
+    }
+
+    public function privacy_exporter( string $email_address, int $page = 1 ): array {
+        $email = sanitize_email( $email_address );
+        if ( ! is_email( $email ) ) return array( 'data' => array(), 'done' => true );
+        global $wpdb;
+        $limit = 100; $offset = max( 0, $page - 1 ) * $limit;
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT id,form_id,submitted_at,payload FROM {$this->table()} WHERE payload LIKE %s ORDER BY id ASC LIMIT %d OFFSET %d", '%' . $wpdb->esc_like( $email ) . '%', $limit, $offset ) );
+        $data = array();
+        foreach ( $rows as $row ) {
+            $payload = json_decode( (string) $row->payload, true );
+            if ( ! is_array( $payload ) || ! $this->payload_contains_email( $payload, $email ) ) continue;
+            $items = array(
+                array( 'name' => __( 'Submission ID', 'secure-form-vault' ), 'value' => (string) $row->id ),
+                array( 'name' => __( 'Form', 'secure-form-vault' ), 'value' => get_the_title( (int) $row->form_id ) ),
+                array( 'name' => __( 'Submitted at (UTC)', 'secure-form-vault' ), 'value' => (string) $row->submitted_at ),
+            );
+            foreach ( $payload as $item ) if ( is_array( $item ) ) $items[] = array( 'name' => sanitize_text_field( (string) ( $item['label'] ?? '' ) ), 'value' => (string) ( $item['value'] ?? '' ) );
+            $data[] = array( 'group_id' => 'grfuel-manager', 'group_label' => __( 'GRFuel Manager submissions', 'secure-form-vault' ), 'item_id' => 'submission-' . absint( $row->id ), 'data' => $items );
+        }
+        return array( 'data' => $data, 'done' => count( $rows ) < $limit );
+    }
+
+    public function register_privacy_eraser( array $erasers ): array {
+        $erasers['grfuel-manager'] = array(
+            'eraser_friendly_name' => __( 'GRFuel Manager submissions', 'secure-form-vault' ),
+            'callback' => array( $this, 'privacy_eraser' ),
+        );
+        return $erasers;
+    }
+
+    public function privacy_eraser( string $email_address, int $page = 1 ): array {
+        $email = sanitize_email( $email_address );
+        if ( ! is_email( $email ) ) return array( 'items_removed' => false, 'items_retained' => false, 'messages' => array(), 'done' => true );
+        global $wpdb;
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT id,payload FROM {$this->table()} WHERE payload LIKE %s ORDER BY id ASC LIMIT 100", '%' . $wpdb->esc_like( $email ) . '%' ) );
+        $removed = 0;
+        foreach ( $rows as $row ) {
+            $payload = json_decode( (string) $row->payload, true );
+            if ( is_array( $payload ) && $this->payload_contains_email( $payload, $email ) ) $removed += (int) $wpdb->delete( $this->table(), array( 'id' => absint( $row->id ) ), array( '%d' ) );
+        }
+        return array( 'items_removed' => $removed > 0, 'items_retained' => false, 'messages' => array(), 'done' => count( $rows ) < 100 );
+    }
+
     public function admin_menu(): void {
         add_menu_page( 'GRFuel Manager', 'GRFuel Manager', self::CAPABILITY, 'grfuel-manager', array( $this, 'dashboard_page' ), $this->admin_icon(), 3 );
         add_submenu_page( 'grfuel-manager', 'Πίνακας Ελέγχου', 'Πίνακας Ελέγχου', self::CAPABILITY, 'grfuel-manager', array( $this, 'dashboard_page' ) );
@@ -1707,6 +2328,7 @@ final class SFV_Plugin {
         add_submenu_page( 'grfuel-manager', 'Νέα Παραγγελία', 'Νέα Παραγγελία', self::CAPABILITY, 'grfuel-new-order', array( $this, 'new_order_page' ) );
         add_submenu_page( 'grfuel-manager', 'Φόρμες', 'Φόρμες', self::CAPABILITY, 'grfuel-forms', array( $this, 'forms_page' ) );
         add_submenu_page( 'grfuel-manager', 'Τιμές Ημέρας', 'Τιμές Ημέρας', self::CAPABILITY, 'grfuel-prices', array( $this, 'daily_prices_page' ) );
+        add_submenu_page( 'grfuel-manager', 'Χρήστες Manager', 'Χρήστες Manager', self::USER_ADMIN_CAPABILITY, 'grfuel-users', array( $this, 'manager_users_page' ) );
         add_submenu_page( 'grfuel-manager', __( 'Settings', 'secure-form-vault' ), __( 'Ρυθμίσεις', 'secure-form-vault' ), self::CAPABILITY, 'sfv-settings', array( $this, 'settings_page' ) );
         add_submenu_page( 'grfuel-manager', 'Backup / Restore', 'Backup / Restore', self::CAPABILITY, 'grfuel-backup', array( $this, 'backup_page' ) );
         add_submenu_page( 'grfuel-manager', __( 'Documentation', 'secure-form-vault' ), __( 'Τεκμηρίωση', 'secure-form-vault' ), self::CAPABILITY, 'sfv-documentation', array( $this, 'documentation_page' ) );
@@ -1853,9 +2475,8 @@ final class SFV_Plugin {
                         </article>
                     <?php endforeach; ?>
                 </div>
-                <form method="post" action="options.php" class="grfuel-chart-tool-form">
-                    <?php settings_fields( 'sfv_settings_group' ); ?>
-                    <?php foreach ( $s as $key => $value ) : if ( in_array( $key, array( 'chart_default_days','chart_max_days','chart_frontend_controls','chart_background' ), true ) || is_array( $value ) ) continue; ?><input type="hidden" name="<?php echo esc_attr(self::OPTION); ?>[<?php echo esc_attr($key); ?>]" value="<?php echo esc_attr((string)$value); ?>"><?php endforeach; ?>
+                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="grfuel-chart-tool-form">
+                    <input type="hidden" name="action" value="grfuel_save_daily_prices"><?php wp_nonce_field( 'grfuel_save_daily_prices' ); ?>
                     <div class="grfuel-price-manager" id="grfuel-price-manager">
                         <div class="grfuel-price-head"><span>Προϊόν</span><span>Slug / Σύντομος κώδικας</span><span>Τιμή</span><span>Μονάδα</span><span></span></div>
                         <div class="grfuel-price-rows">
@@ -1921,6 +2542,53 @@ final class SFV_Plugin {
         </div><?php
     }
 
+    public function manager_users_page(): void {
+        if ( ! current_user_can( self::USER_ADMIN_CAPABILITY ) ) wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
+        $operators = get_users( array( 'role' => self::OPERATOR_ROLE, 'orderby' => 'display_name', 'order' => 'ASC' ) );
+        ?>
+        <div class="wrap sfv-admin-page grfuel-users-page">
+            <?php $this->admin_nav( 'users' ); ?>
+            <?php $this->section_intro(
+                'Χρήστες Manager',
+                'Μόνο ο Administrator δημιουργεί λογαριασμούς και αναθέτει τον ρόλο GRFuel Operator.',
+                array( array( 'label' => 'Προσθήκη χρήστη', 'url' => admin_url( 'user-new.php' ), 'class' => 'sfv-btn-primary', 'icon' => 'dashicons-plus-alt2' ) )
+            ); ?>
+            <section class="sfv-panel"><div class="sfv-panel-heading"><div><h2>Email OTP</h2><p>Η ενεργοποίηση γίνεται αφού επιβεβαιωθεί ότι το WordPress στέλνει email αξιόπιστα. URL σύνδεσης: <code><?php echo esc_html( $this->manager_login_url() ); ?></code></p></div><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="grfuel_set_otp_enabled"><input type="hidden" name="enabled" value="<?php echo $this->otp_enabled() ? '0' : '1'; ?>"><?php wp_nonce_field( 'grfuel_set_otp_enabled' ); ?><button class="sfv-btn <?php echo esc_attr( $this->otp_enabled() ? 'sfv-btn-danger' : 'sfv-btn-primary' ); ?>" type="submit"><?php echo esc_html( $this->otp_enabled() ? 'Απενεργοποίηση OTP' : 'Ενεργοποίηση OTP' ); ?></button></form></div></section>
+            <section class="sfv-panel"><div class="sfv-panel-heading"><div><h2>GRFuel Operators</h2><p><?php echo esc_html( sprintf( '%d λογαριασμοί Operator. Η πρόσβαση απαιτεί ρητή έγκριση Administrator.', count( $operators ) ) ); ?></p></div></div>
+                <div class="sfv-submission-table" role="table">
+                    <div class="sfv-submission-row sfv-submission-head" role="row"><span></span><span>Χρήστης</span><span>Email</span><span>Κατάσταση</span><span>Τελευταίο OTP login</span><span>Ενέργειες</span></div>
+                    <?php foreach ( $operators as $operator ) : $last_otp = absint( get_user_meta( $operator->ID, 'grfuel_last_otp_login', true ) ); $approved = $this->operator_is_approved( $operator ); ?>
+                        <div class="sfv-submission-row" role="row"><span class="dashicons dashicons-admin-users"></span><div class="sfv-row-primary"><strong><?php echo esc_html( $operator->display_name ); ?></strong><small><?php echo esc_html( $operator->user_login ); ?></small></div><div><?php echo esc_html( $operator->user_email ); ?></div><div><strong><?php echo esc_html( $approved ? 'Εγκεκριμένος' : 'Αναμένει έγκριση' ); ?></strong></div><div><?php echo esc_html( $last_otp ? wp_date( 'd/m/Y H:i', $last_otp ) : '—' ); ?></div><div class="sfv-row-actions"><form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>"><input type="hidden" name="action" value="grfuel_set_operator_approval"><input type="hidden" name="user_id" value="<?php echo absint( $operator->ID ); ?>"><input type="hidden" name="approved" value="<?php echo $approved ? '0' : '1'; ?>"><?php wp_nonce_field( 'grfuel_set_operator_approval_' . $operator->ID ); ?><button class="sfv-btn <?php echo esc_attr( $approved ? 'sfv-btn-danger' : 'sfv-btn-primary' ); ?>" type="submit"><?php echo esc_html( $approved ? 'Ανάκληση' : 'Έγκριση' ); ?></button></form><a class="sfv-icon-action" href="<?php echo esc_url( get_edit_user_link( $operator->ID ) ); ?>" aria-label="Επεξεργασία χρήστη"><span class="dashicons dashicons-edit"></span></a></div></div>
+                    <?php endforeach; if ( ! $operators ) : ?><div class="sfv-empty-submissions"><span class="dashicons dashicons-groups"></span><h3>Δεν υπάρχουν Operators</h3><p>Δημιουργήστε χρήστη και επιλέξτε τον ρόλο «GRFuel Operator».</p></div><?php endif; ?>
+                </div>
+            </section>
+        </div><?php
+    }
+
+    public function set_operator_approval(): void {
+        $this->require_post_request();
+        if ( ! current_user_can( self::USER_ADMIN_CAPABILITY ) ) wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
+        $user_id = absint( $_POST['user_id'] ?? 0 );
+        check_admin_referer( 'grfuel_set_operator_approval_' . $user_id );
+        $user = get_user_by( 'id', $user_id );
+        if ( ! $user instanceof WP_User || ! in_array( self::OPERATOR_ROLE, (array) $user->roles, true ) ) {
+            wp_die( esc_html__( 'Ο λογαριασμός Operator δεν βρέθηκε.', 'secure-form-vault' ) );
+        }
+        if ( ! empty( $_POST['approved'] ) ) update_user_meta( $user_id, 'grfuel_operator_approved', '1' );
+        else delete_user_meta( $user_id, 'grfuel_operator_approved' );
+        wp_safe_redirect( admin_url( 'admin.php?page=grfuel-users' ) );
+        exit;
+    }
+
+    public function set_otp_enabled(): void {
+        $this->require_post_request();
+        if ( ! current_user_can( self::USER_ADMIN_CAPABILITY ) ) wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
+        check_admin_referer( 'grfuel_set_otp_enabled' );
+        update_option( self::OTP_ENABLED_OPTION, ! empty( $_POST['enabled'] ) ? '1' : '0', false );
+        wp_safe_redirect( admin_url( 'admin.php?page=grfuel-users' ) );
+        exit;
+    }
+
     public function plugin_links( array $links ): array {
         array_unshift( $links, '<a href="' . esc_url( admin_url( 'admin.php?page=sfv-documentation' ) ) . '">' . esc_html__( 'Τεκμηρίωση', 'secure-form-vault' ) . '</a>' );
         return $links;
@@ -1948,18 +2616,20 @@ final class SFV_Plugin {
             'new-order' => array( 'label' => 'Νέα Παραγγελία', 'url' => admin_url( 'admin.php?page=grfuel-new-order' ), 'icon' => 'dashicons-plus-alt2' ),
             'forms' => array( 'label' => 'Φόρμες', 'url' => admin_url( 'admin.php?page=grfuel-forms' ), 'icon' => 'dashicons-feedback' ),
             'prices' => array( 'label' => 'Τιμές Ημέρας', 'url' => admin_url( 'admin.php?page=grfuel-prices' ), 'icon' => 'dashicons-chart-line' ),
+            'users' => array( 'label' => 'Χρήστες Manager', 'url' => admin_url( 'admin.php?page=grfuel-users' ), 'icon' => 'dashicons-groups' ),
             'settings' => array( 'label' => 'Ρυθμίσεις', 'url' => admin_url( 'admin.php?page=sfv-settings' ), 'icon' => 'dashicons-admin-generic' ),
             'backup' => array( 'label' => 'Backup / Restore', 'url' => admin_url( 'admin.php?page=grfuel-backup' ), 'icon' => 'dashicons-database-export' ),
             'documentation' => array( 'label' => 'Τεκμηρίωση', 'url' => admin_url( 'admin.php?page=sfv-documentation' ), 'icon' => 'dashicons-book-alt' ),
             'changelog' => array( 'label' => 'Changelog', 'url' => admin_url( 'admin.php?page=grfuel-changelog' ), 'icon' => 'dashicons-list-view' ),
         );
+        if ( ! current_user_can( self::USER_ADMIN_CAPABILITY ) ) unset( $items['users'] );
         echo '<nav class="sfv-compact-nav grfuel-app-sidebar" aria-label="GRFuel Manager"><button type="button" class="grfuel-mobile-menu-close" aria-label="Κλείσιμο μενού"><span class="dashicons dashicons-no-alt"></span></button><div class="grfuel-sidebar-brand">' . $this->admin_icon_markup() . '<div><strong>GRFuel</strong><span>Manager</span></div></div><div class="grfuel-sidebar-links">';
         foreach ( $items as $key => $item ) {
             $unread = 'submissions' === $key ? $this->unread_orders_count() : 0;
             $badge = ( 'submissions' === $key && $unread > 0 ) ? '<span class="grfuel-order-badge" data-grfuel-order-badge>' . esc_html( $unread > 99 ? '99+' : (string) $unread ) . '</span>' : ( 'submissions' === $key ? '<span class="grfuel-order-badge" data-grfuel-order-badge hidden></span>' : '' );
             printf( '<a class="%1$s" href="%2$s"><span class="grfuel-nav-icon dashicons %3$s"></span><span class="grfuel-nav-label">%4$s</span>%5$s</a>', esc_attr( $active === $key ? 'is-active' : '' ), esc_url( $item['url'] ), esc_attr( $item['icon'] ), esc_html( $item['label'] ), $badge ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         }
-        echo '</div><button type="button" class="grfuel-sidebar-toggle" aria-label="Σύμπτυξη μενού" aria-expanded="true" title="Σύμπτυξη μενού"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 6.5 9 12l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Σύμπτυξη</span></button><div class="grfuel-sidebar-foot"><span>GRFuel Manager v' . esc_html( self::VERSION ) . '</span><span class="grfuel-developer-credit">Developed by <a class="grfuel-developer-link" href="https://dazzlink.gr" target="_blank" rel="noopener noreferrer">Dazzlink</a></span><a class="grfuel-logout-link" href="' . esc_url( wp_logout_url( home_url( '/' ) ) ) . '">← Έξοδος</a></div></nav><header class="grfuel-mobile-header"><div class="grfuel-mobile-brand">' . $this->admin_icon_markup() . '<strong>GRFuel Manager</strong></div><button type="button" class="grfuel-mobile-burger" aria-label="Άνοιγμα μενού" aria-expanded="false"><span></span><span></span><span></span></button></header><button type="button" class="grfuel-mobile-overlay" aria-label="Κλείσιμο μενού"></button>';
+        echo '</div><button type="button" class="grfuel-sidebar-toggle" aria-label="Σύμπτυξη μενού" aria-expanded="true" title="Σύμπτυξη μενού"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 6.5 9 12l5.5 5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Σύμπτυξη</span></button><div class="grfuel-sidebar-foot"><span>GRFuel Manager v' . esc_html( self::VERSION ) . '</span><span class="grfuel-developer-credit">Developed by <a class="grfuel-developer-link" href="https://dazzlink.gr" target="_blank" rel="noopener noreferrer">Dazzlink</a></span><a class="grfuel-logout-link" href="' . esc_url( $this->manager_logout_url() ) . '" target="_top">← Έξοδος Manager</a></div></nav><header class="grfuel-mobile-header"><div class="grfuel-mobile-brand">' . $this->admin_icon_markup() . '<strong>GRFuel Manager</strong></div><button type="button" class="grfuel-mobile-burger" aria-label="Άνοιγμα μενού" aria-expanded="false"><span></span><span></span><span></span></button></header><button type="button" class="grfuel-mobile-overlay" aria-label="Κλείσιμο μενού"></button>';
     }
 
     private function admin_icon_markup(): string {
@@ -1987,8 +2657,12 @@ final class SFV_Plugin {
         <?php
     }
 
-    private function backup_data(): array {
+    private function backup_data( bool $include_secrets = false ): array {
         global $wpdb;
+        $settings = (array) get_option( self::OPTION, array() );
+        if ( ! $include_secrets ) {
+            unset( $settings['secret_key'], $settings['onesignal_api_key'] );
+        }
         $forms = array();
         $posts = get_posts( array(
             'post_type' => self::CPT,
@@ -2026,7 +2700,7 @@ final class SFV_Plugin {
         }
 
         return array(
-            'settings' => get_option( self::OPTION, array() ),
+            'settings' => $settings,
             'price_history' => get_option( self::PRICE_HISTORY_OPTION, array() ),
             'forms' => $forms,
             'submissions' => $wpdb->get_results( 'SELECT id, form_id, submitted_at, payload, ip_hash, user_agent FROM ' . $this->table() . ' ORDER BY id ASC', ARRAY_A ),
@@ -2060,6 +2734,7 @@ final class SFV_Plugin {
                     <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
                         <input type="hidden" name="action" value="grfuel_export_backup">
                         <?php wp_nonce_field( 'grfuel_export_backup' ); ?>
+                        <label class="grfuel-backup-confirm"><input type="checkbox" name="include_secrets" value="1"><span>Συμπερίληψη Turnstile Secret και OneSignal API Key (μόνο για κρυπτογραφημένη αποθήκευση).</span></label>
                         <button type="submit" class="sfv-btn sfv-btn-primary"><span class="dashicons dashicons-download"></span>Λήψη πλήρους backup</button>
                     </form>
                 </section>
@@ -2080,7 +2755,142 @@ final class SFV_Plugin {
         <?php
     }
 
+    private function normalize_imported_form( array $form ): ?array {
+        $raw_fields = $form['fields'] ?? null;
+        if ( ! is_array( $raw_fields ) || count( $raw_fields ) > 50 ) {
+            return null;
+        }
+        $allowed_types = array( 'text', 'email', 'phone', 'number', 'date', 'dropdown', 'radio', 'delivery_region', 'delivery_city', 'checkbox', 'textarea', 'heading', 'content_text', 'divider', 'price_calculator', 'single_price_calculator', 'submit', 'turnstile' );
+        $allowed_heading_tags = array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' );
+        $allowed_heading_styles = array( 'default', 'small', 'medium', 'large', 'xlarge', '2xlarge', '3xlarge' );
+        $allowed_divider_styles = array( 'default', 'small', 'icon' );
+        $used_keys = array();
+        $unique_types = array( 'submit' => false, 'turnstile' => false );
+        $fields = array();
+        foreach ( $raw_fields as $index => $field ) {
+            if ( ! is_array( $field ) ) return null;
+            $type = sanitize_key( (string) ( $field['type'] ?? 'text' ) );
+            if ( ! in_array( $type, $allowed_types, true ) ) return null;
+            if ( isset( $unique_types[ $type ] ) ) {
+                if ( $unique_types[ $type ] ) return null;
+                $unique_types[ $type ] = true;
+            }
+            $key = mb_substr( sanitize_key( (string) ( $field['key'] ?? '' ) ), 0, 64 );
+            if ( '' === $key ) $key = 'field_' . ( $index + 1 );
+            $base_key = $key; $suffix = 2;
+            while ( isset( $used_keys[ $key ] ) ) {
+                $tail = '_' . $suffix++;
+                $key = mb_substr( $base_key, 0, 64 - strlen( $tail ) ) . $tail;
+            }
+            $used_keys[ $key ] = true;
+            $options = array();
+            if ( in_array( $type, array( 'dropdown', 'radio' ), true ) ) {
+                if ( isset( $field['options'] ) && ! is_array( $field['options'] ) ) return null;
+                foreach ( array_slice( (array) ( $field['options'] ?? array() ), 0, 100 ) as $option ) {
+                    if ( ! is_scalar( $option ) ) return null;
+                    $option = mb_substr( sanitize_text_field( (string) $option ), 0, 300 );
+                    if ( '' !== $option ) $options[] = $option;
+                }
+            }
+            $heading_tag = sanitize_key( (string) ( $field['heading_tag'] ?? 'h2' ) );
+            $heading_style = sanitize_key( (string) ( $field['heading_style'] ?? 'default' ) );
+            $divider_style = sanitize_key( (string) ( $field['divider_style'] ?? 'default' ) );
+            $message_only_option = sanitize_text_field( (string) ( $field['message_only_option'] ?? '' ) );
+            $fields[] = array(
+                'key' => $key,
+                'type' => $type,
+                'label' => 'checkbox' === $type ? $this->sanitize_checkbox_label( (string) ( $field['label'] ?? '' ) ) : mb_substr( sanitize_text_field( (string) ( $field['label'] ?? '' ) ), 0, 300 ),
+                'checkbox_value' => mb_substr( sanitize_text_field( (string) ( $field['checkbox_value'] ?? '' ) ), 0, 300 ),
+                'content' => 'content_text' === $type ? mb_substr( sanitize_textarea_field( (string) ( $field['content'] ?? '' ) ), 0, 10000 ) : mb_substr( sanitize_text_field( (string) ( $field['content'] ?? '' ) ), 0, 500 ),
+                'heading_tag' => in_array( $heading_tag, $allowed_heading_tags, true ) ? $heading_tag : 'h2',
+                'heading_style' => in_array( $heading_style, $allowed_heading_styles, true ) ? $heading_style : 'default',
+                'divider_style' => in_array( $divider_style, $allowed_divider_styles, true ) ? $divider_style : 'default',
+                'product_field' => sanitize_key( (string) ( $field['product_field'] ?? '' ) ),
+                'product_label' => mb_substr( sanitize_text_field( (string) ( $field['product_label'] ?? '' ) ), 0, 200 ),
+                'quantity_field' => sanitize_key( (string) ( $field['quantity_field'] ?? '' ) ),
+                'pricing_rows' => $this->sanitize_pricing_rows( $field['pricing_rows'] ?? array() ),
+                'currency' => mb_substr( sanitize_text_field( (string) ( $field['currency'] ?? '€' ) ), 0, 8 ),
+                'unit_label' => mb_substr( sanitize_text_field( (string) ( $field['unit_label'] ?? 'λίτρο' ) ), 0, 40 ),
+                'total_label' => mb_substr( sanitize_text_field( (string) ( $field['total_label'] ?? 'Σύνολο' ) ), 0, 80 ),
+                'calculator_placeholder' => mb_substr( sanitize_text_field( (string) ( $field['calculator_placeholder'] ?? '' ) ), 0, 160 ),
+                'placeholder' => mb_substr( sanitize_text_field( (string) ( $field['placeholder'] ?? '' ) ), 0, 300 ),
+                'suffix' => 'number' === $type ? mb_substr( sanitize_text_field( (string) ( $field['suffix'] ?? 'lt' ) ), 0, 20 ) : '',
+                'required' => ! empty( $field['required'] ),
+                'hide_label' => ! empty( $field['hide_label'] ),
+                'options' => $options,
+                'message_only_enabled' => 'radio' === $type && ! empty( $field['message_only_enabled'] ),
+                'message_only_option' => 'radio' === $type && in_array( $message_only_option, $options, true ) ? $message_only_option : '',
+                'message_only_text' => 'radio' === $type ? mb_substr( sanitize_textarea_field( (string) ( $field['message_only_text'] ?? '' ) ), 0, 1000 ) : '',
+                'location_region_field' => sanitize_key( (string) ( $field['location_region_field'] ?? '' ) ),
+                'layout' => $this->sanitize_layout( $field['layout'] ?? array(), $field['widths'] ?? array() ),
+                'dependency' => $this->sanitize_dependency( $field['dependency'] ?? array() ),
+            );
+        }
+        $region_keys = array_column(
+            array_values( array_filter( $fields, static fn( $field ) => 'delivery_region' === ( $field['type'] ?? '' ) ) ),
+            'key'
+        );
+        if ( 1 === count( $region_keys ) ) {
+            foreach ( $fields as &$normalized_field ) {
+                if ( 'delivery_city' === ( $normalized_field['type'] ?? '' ) && '' === ( $normalized_field['location_region_field'] ?? '' ) ) {
+                    $normalized_field['location_region_field'] = (string) $region_keys[0];
+                }
+            }
+            unset( $normalized_field );
+        }
+        $confirmation = is_array( $form['confirmation'] ?? null ) ? $form['confirmation'] : array();
+        $email_keys = array_column( array_values( array_filter( $fields, static fn( $field ) => 'email' === $field['type'] ) ), 'key' );
+        $email_field = sanitize_key( (string) ( $confirmation['email_field'] ?? '' ) );
+        if ( ! in_array( $email_field, $email_keys, true ) ) $email_field = '';
+        return array(
+            'title' => mb_substr( sanitize_text_field( (string) ( $form['title'] ?? 'Εισαγόμενη φόρμα' ) ), 0, 200 ) ?: 'Εισαγόμενη φόρμα',
+            'menu_order' => min( 100000, absint( $form['menu_order'] ?? 0 ) ),
+            'fields' => $fields,
+            'confirmation' => array(
+                'success_message' => mb_substr( sanitize_textarea_field( (string) ( $confirmation['success_message'] ?? '' ) ), 0, 2000 ),
+                'email_field' => $email_field,
+                'email_subject' => mb_substr( sanitize_text_field( (string) ( $confirmation['email_subject'] ?? '' ) ), 0, 200 ),
+                'email_message' => mb_substr( sanitize_textarea_field( (string) ( $confirmation['email_message'] ?? '' ) ), 0, 10000 ),
+            ),
+        );
+    }
+
+    private function normalize_imported_submission_payload( $payload ): ?string {
+        $decoded = is_string( $payload ) ? json_decode( $payload, true ) : $payload;
+        if ( ! is_array( $decoded ) || count( $decoded ) > 60 ) return null;
+        $clean = array();
+        foreach ( $decoded as $key => $item ) {
+            $clean_key = sanitize_key( (string) $key );
+            if ( '' === $clean_key || ! is_array( $item ) || ! is_scalar( $item['label'] ?? '' ) || ! is_scalar( $item['value'] ?? '' ) ) return null;
+            $clean[ $clean_key ] = array(
+                'label' => mb_substr( sanitize_text_field( (string) ( $item['label'] ?? '' ) ), 0, 300 ),
+                'value' => mb_substr( sanitize_textarea_field( (string) ( $item['value'] ?? '' ) ), 0, 5000 ),
+            );
+        }
+        return wp_json_encode( $clean, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
+    }
+
+    private function normalize_imported_price_history( $history ): ?array {
+        if ( ! is_array( $history ) || count( $history ) > 20 ) return null;
+        $clean = array();
+        foreach ( $history as $slug => $entries ) {
+            $clean_slug = sanitize_title( (string) $slug );
+            if ( '' === $clean_slug || ! is_array( $entries ) || count( $entries ) > 3650 ) return null;
+            foreach ( $entries as $entry ) {
+                if ( ! is_array( $entry ) ) return null;
+                $recorded_at = sanitize_text_field( (string) ( $entry['recorded_at'] ?? '' ) );
+                $date_part = substr( $recorded_at, 0, 10 );
+                $date = DateTimeImmutable::createFromFormat( '!Y-m-d', $date_part );
+                $price = (float) ( $entry['price'] ?? 0 );
+                if ( ! $date || $date->format( 'Y-m-d' ) !== $date_part || $price < 0 || $price > 1000000 ) return null;
+                $clean[ $clean_slug ][] = array( 'price' => $price, 'recorded_at' => $date_part . ' 12:00:00' );
+            }
+        }
+        return $clean;
+    }
+
     public function export_form(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) {
             wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
         }
@@ -2120,7 +2930,7 @@ final class SFV_Plugin {
         if ( '' === $title ) $title = 'form-' . $form->ID;
         $filename = $site . '-GRFuel-form-' . $title . '-' . wp_date( 'dmY-His' ) . '.json';
 
-        nocache_headers();
+        $this->send_private_response_headers();
         header( 'Content-Type: application/json; charset=utf-8' );
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
         header( 'X-Content-Type-Options: nosniff' );
@@ -2129,6 +2939,7 @@ final class SFV_Plugin {
     }
 
     public function import_form(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) {
             wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
         }
@@ -2150,32 +2961,47 @@ final class SFV_Plugin {
         }
         $form = $decoded['form'];
         $payload = wp_json_encode( $form, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
-        if ( empty( $decoded['checksum'] ) || ! hash_equals( (string) $decoded['checksum'], hash( 'sha256', (string) $payload ) ) ) {
+        $stored_checksum = strtolower( sanitize_text_field( (string) ( $decoded['checksum'] ?? '' ) ) );
+        $calculated_checksum = hash( 'sha256', (string) $payload );
+        $export_version = sanitize_text_field( (string) ( $decoded['plugin_version'] ?? '' ) );
+        $is_legacy_export = '' !== $export_version && version_compare( $export_version, '4.3.18', '<' );
+        $has_well_formed_checksum = 1 === preg_match( '/^[a-f0-9]{64}$/', $stored_checksum );
+
+        // Releases before 4.3.18 could serialize some form metadata differently
+        // between checksum generation and the final JSON document. Their checksum
+        // is therefore retained as a structural marker, while the strict schema
+        // normalizer below remains the actual trust boundary. Current exports
+        // must always reproduce the exact SHA-256 value.
+        if ( ! $has_well_formed_checksum || ( ! $is_legacy_export && ! hash_equals( $stored_checksum, $calculated_checksum ) ) ) {
             wp_safe_redirect( add_query_arg( 'grfuel_form_import_error', '1', $redirect ) );
             exit;
         }
-        $title = mb_substr( sanitize_text_field( $form['title'] ?? 'Εισαγόμενη φόρμα' ), 0, 200 );
-        if ( '' === $title ) $title = 'Εισαγόμενη φόρμα';
+        $normalized_form = $this->normalize_imported_form( $form );
+        if ( null === $normalized_form ) {
+            wp_safe_redirect( add_query_arg( 'grfuel_form_import_error', '1', $redirect ) );
+            exit;
+        }
         $post_id = wp_insert_post( array(
             'post_type'   => self::CPT,
-            'post_title'  => $title,
-            'post_status' => in_array( $form['status'] ?? '', array( 'publish', 'draft', 'private' ), true ) ? $form['status'] : 'draft',
-            'menu_order'  => absint( $form['menu_order'] ?? 0 ),
+            'post_title'  => $normalized_form['title'],
+            'post_status' => 'draft',
+            'menu_order'  => $normalized_form['menu_order'],
         ), true );
         if ( is_wp_error( $post_id ) ) {
             wp_safe_redirect( add_query_arg( 'grfuel_form_import_error', '1', $redirect ) );
             exit;
         }
-        update_post_meta( $post_id, '_sfv_fields', is_array( $form['fields'] ?? null ) ? $form['fields'] : array() );
-        update_post_meta( $post_id, '_sfv_confirmation', is_array( $form['confirmation'] ?? null ) ? $form['confirmation'] : array() );
+        update_post_meta( $post_id, '_sfv_fields', $normalized_form['fields'] );
+        update_post_meta( $post_id, '_sfv_confirmation', $normalized_form['confirmation'] );
         wp_safe_redirect( add_query_arg( 'grfuel_form_imported', '1', $redirect ) );
         exit;
     }
 
     public function export_backup(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
         check_admin_referer( 'grfuel_export_backup' );
-        $data = $this->backup_data();
+        $data = $this->backup_data( ! empty( $_POST['include_secrets'] ) );
         $backup = array(
             'format' => 'grfuel-manager-backup',
             'format_version' => 1,
@@ -2187,7 +3013,7 @@ final class SFV_Plugin {
         );
         $site = sanitize_title( get_bloginfo( 'name' ) ) ?: 'site';
         $filename = $site . '-GRFuel-backup-' . wp_date( 'dmY-His' ) . '.json';
-        nocache_headers();
+        $this->send_private_response_headers();
         header( 'Content-Type: application/json; charset=UTF-8' );
         header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
         header( 'X-Content-Type-Options: nosniff' );
@@ -2201,6 +3027,7 @@ final class SFV_Plugin {
     }
 
     public function import_backup(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
         check_admin_referer( 'grfuel_import_backup' );
         if ( empty( $_POST['confirm_replace'] ) ) { $this->backup_redirect( 'invalid' ); }
@@ -2218,6 +3045,35 @@ final class SFV_Plugin {
         if ( empty( $backup['checksum'] ) || ! hash_equals( (string) $backup['checksum'], $checksum ) ) { $this->backup_redirect( 'checksum_error' ); }
         if ( ! isset( $data['settings'], $data['price_history'], $data['forms'], $data['submissions'] ) || ! is_array( $data['forms'] ) || ! is_array( $data['submissions'] ) ) { $this->backup_redirect( 'invalid' ); }
 
+        if ( count( $data['forms'] ) > 200 || count( $data['submissions'] ) > 100000 ) { $this->backup_redirect( 'invalid' ); }
+        $normalized_forms = array();
+        foreach ( $data['forms'] as $form ) {
+            if ( ! is_array( $form ) ) { $this->backup_redirect( 'invalid' ); }
+            $normalized = $this->normalize_imported_form( $form );
+            if ( null === $normalized ) { $this->backup_redirect( 'invalid' ); }
+            $normalized['id'] = absint( $form['id'] ?? 0 );
+            $normalized['status'] = in_array( (string) ( $form['status'] ?? '' ), array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' ), true ) ? (string) $form['status'] : 'draft';
+            $normalized['date'] = sanitize_text_field( (string) ( $form['date'] ?? current_time( 'mysql' ) ) );
+            $normalized['date_gmt'] = sanitize_text_field( (string) ( $form['date_gmt'] ?? current_time( 'mysql', true ) ) );
+            $normalized_forms[] = $normalized;
+        }
+        $normalized_submissions = array();
+        foreach ( $data['submissions'] as $row ) {
+            if ( ! is_array( $row ) ) { $this->backup_redirect( 'invalid' ); }
+            $clean_payload = $this->normalize_imported_submission_payload( $row['payload'] ?? '{}' );
+            if ( null === $clean_payload ) { $this->backup_redirect( 'invalid' ); }
+            $row['payload'] = $clean_payload;
+            $normalized_submissions[] = $row;
+        }
+        $normalized_history = $this->normalize_imported_price_history( $data['price_history'] );
+        if ( null === $normalized_history ) { $this->backup_redirect( 'invalid' ); }
+        $incoming_settings = is_array( $data['settings'] ) ? $data['settings'] : array();
+        $current_settings = (array) get_option( self::OPTION, array() );
+        foreach ( array( 'secret_key', 'onesignal_api_key' ) as $secret_key ) {
+            if ( ! array_key_exists( $secret_key, $incoming_settings ) && isset( $current_settings[ $secret_key ] ) ) $incoming_settings[ $secret_key ] = $current_settings[ $secret_key ];
+        }
+        $normalized_settings = $this->sanitize_settings( $incoming_settings );
+
         global $wpdb;
         $this->create_table();
         $existing = get_posts( array( 'post_type' => self::CPT, 'post_status' => 'any', 'posts_per_page' => -1, 'fields' => 'ids' ) );
@@ -2225,28 +3081,28 @@ final class SFV_Plugin {
         $wpdb->query( 'DELETE FROM ' . $this->table() );
 
         $form_map = array();
-        foreach ( $data['forms'] as $form ) {
+        foreach ( $normalized_forms as $form ) {
             if ( ! is_array( $form ) ) { continue; }
             $old_id = absint( $form['id'] ?? 0 );
             $postarr = array(
                 'post_type' => self::CPT,
-                'post_title' => sanitize_text_field( (string) ( $form['title'] ?? '' ) ),
+                'post_title' => $form['title'],
                 'post_status' => in_array( (string) ( $form['status'] ?? '' ), array( 'publish', 'draft', 'pending', 'private', 'future', 'trash' ), true ) ? (string) $form['status'] : 'publish',
                 'post_date' => sanitize_text_field( (string) ( $form['date'] ?? current_time( 'mysql' ) ) ),
                 'post_date_gmt' => sanitize_text_field( (string) ( $form['date_gmt'] ?? current_time( 'mysql', true ) ) ),
-                'menu_order' => (int) ( $form['menu_order'] ?? 0 ),
+                'menu_order' => (int) $form['menu_order'],
             );
             if ( $old_id > 0 && ! get_post( $old_id ) ) { $postarr['import_id'] = $old_id; }
             $new_id = wp_insert_post( wp_slash( $postarr ), true );
             if ( is_wp_error( $new_id ) ) { $this->backup_redirect( 'restore_error' ); }
             $form_map[ $old_id ] = (int) $new_id;
-            update_post_meta( $new_id, '_sfv_fields', is_array( $form['fields'] ?? null ) ? $form['fields'] : array() );
-            update_post_meta( $new_id, '_sfv_confirmation', is_array( $form['confirmation'] ?? null ) ? $form['confirmation'] : array() );
+            update_post_meta( $new_id, '_sfv_fields', $form['fields'] );
+            update_post_meta( $new_id, '_sfv_confirmation', $form['confirmation'] );
         }
 
-        update_option( self::OPTION, is_array( $data['settings'] ) ? $data['settings'] : array(), false );
-        update_option( self::PRICE_HISTORY_OPTION, is_array( $data['price_history'] ) ? $data['price_history'] : array(), false );
-        foreach ( $data['submissions'] as $row ) {
+        update_option( self::OPTION, $normalized_settings, false );
+        update_option( self::PRICE_HISTORY_OPTION, $normalized_history, false );
+        foreach ( $normalized_submissions as $row ) {
             if ( ! is_array( $row ) ) { continue; }
             $old_form_id = absint( $row['form_id'] ?? 0 );
             $insert = array(
@@ -2303,7 +3159,7 @@ final class SFV_Plugin {
             <?php $this->admin_nav( 'changelog' ); ?>
             <?php $this->section_intro( 'Changelog', 'Όλες οι αλλαγές και οι βελτιώσεις του GRFuel Manager ανά έκδοση.' ); ?>
             <main class="sfv-panel sfv-docs-content grfuel-changelog-content">
-                <section class="grfuel-changelog-shell"><header class="grfuel-changelog-hero"><span class="dashicons dashicons-backup"></span><div><small>GRFuel Manager</small><h2>Ιστορικό εκδόσεων</h2><p>Όλες οι βελτιώσεις και οι διορθώσεις του manager, οργανωμένες ανά έκδοση.</p></div></header><div class="grfuel-changelog-timeline"><article class="grfuel-changelog-release is-latest"><div class="grfuel-changelog-version"><strong>4.3.18</strong><span>Τρέχουσα έκδοση</span></div><ul><li>Νέος ρόλος «GRFuel Operator» με πλήρη πρόσβαση στον Manager χωρίς δικαιώματα administrator στο WordPress.</li><li>Οι administrators διατηρούν αυτόματα την πρόσβασή τους.</li><li>Διορθώθηκε η διαγραφή μεμονωμένης παραγγελίας από τη λίστα Παραγγελιών.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.7</strong></div><ul><li>Επαναφορά όλων των αλλαγών έως την 4.3.6 πάνω στην ασφαλή βάση, χωρίς να επηρεάζονται τα Acrobat PDF icons.</li><li>Τα τελευταία έξι πεδία του PDF εμφανίζονται με σταθερή σειρά: Διεύθυνση, Τηλέφωνο, Email, Επιθυμητή ημερομηνία, Ποσότητα, Σύνολο παραγγελίας.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.3</strong></div><ul><li>Διορθώθηκε οριστικά το PDF ώστε να αφαιρεί την αποδοχή Πολιτικής Απορρήτου με έλεγχο πεδίου, label και αποθηκευμένης τιμής.</li><li>Το Σύνολο παραγγελίας εμφανίζεται στη θέση της αποδοχής και υπολογίζεται εκ νέου όταν λείπει από παλαιότερη παραγγελία.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.2</strong></div><ul><li>Πρώτη προσαρμογή της διάταξης PDF για απόκρυψη πολιτικής και μεταφορά του συνόλου.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.1</strong></div><ul><li>Προστέθηκε υδατογράφημα PNG/SVG στο PDF Branding με αποθηκευόμενο opacity και κεντραρισμένη διάταξη 3/4 × 3/5 της σελίδας.</li><li>Το εικονίδιο PDF στις παραγγελίες αντικαταστάθηκε με το κλασικό σύμβολο Acrobat.</li><li>Το Changelog ανασχεδιάστηκε σύμφωνα με τη διάταξη του Stavros Floral Studio Suite.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.0</strong></div><ul><li>Προστέθηκε admin-only mobile push μέσω OneSignal, με σύνδεση συσκευής, δοκιμαστική αποστολή και αυτόματη ειδοποίηση σε κάθε νέα παραγγελία.</li><li>Τα push εμφανίζουν μόνο ασφαλή στοιχεία παραγγελίας και το OneSignal API key παραμένει αποκλειστικά στον WordPress server.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.8</strong></div><ul><li>Διορθώθηκε το οριζόντιο overflow στο mobile ώστε ο manager, το sticky header και όλα τα panels να μην ξεπερνούν το διαθέσιμο πλάτος της οθόνης.</li><li>Φορτώνεται επίσημα η γραμματοσειρά Geom από Google Fonts και εφαρμόζεται σε ολόκληρο το περιβάλλον του manager.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.7</strong></div><ul><li>Διορθώθηκε το count-up animation των αριθμητικών τιμών στα tooltips των γραφημάτων κατά το hover ή το touch.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.6</strong></div><ul><li>Το mobile header τοποθετήθηκε στο απολύτως επάνω άκρο της οθόνης, ανεξάρτητα από την WordPress admin bar.</li><li>Το off-canvas sidebar καλύπτει πλέον ολόκληρο το διαθέσιμο ύψος της συσκευής, με υποστήριξη dynamic viewport και safe areas.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.5</strong></div><ul><li>Το tooltip των γραφημάτων ακολουθεί πλέον το animation του reference plugin, με ομαλή εμφάνιση και animated μετάβαση της αριθμητικής τιμής.</li><li>Το mobile menu ανασχεδιάστηκε με sticky επάνω μπάρα, burger αριστερά, κεντραρισμένο λογότυπο και ξεχωριστό κουμπί κλεισίματος μέσα στο off-canvas sidebar.</li><li>Οι κύκλοι του Changelog κεντραρίστηκαν επάνω στην κάθετη γραμμή και η έκδοση εμφανίζεται ως απλό κείμενο δεξιά από κάθε κύκλο.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.4</strong></div><ul><li>Το off-canvas sidebar στο κινητό εμφανίζει πλέον πάντα τόσο τα εικονίδια όσο και τους τίτλους των επιλογών.</li><li>Διορθώθηκε η θέση και το responsive μέγεθος του burger button ώστε να παραμένει πλήρως μέσα στην οθόνη.</li><li>Το Changelog έγινε πλήρους πλάτους, ευθυγραμμισμένο με το πλαίσιο τίτλου, και ανανεώθηκε αισθητικά.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.3</strong></div><ul><li>Διορθώθηκε η δυναμική εμφάνιση πεδίων στη Νέα Παραγγελία ώστε να ακολουθεί πιστά τα dependencies της επιλεγμένης φόρμας.</li><li>Τα υποχρεωτικά πεδία ενεργοποιούνται μόνο όταν είναι ορατά.</li><li>Η διάταξη πεδίων του admin χρησιμοποιεί ανεξάρτητο responsive grid και όχι classes του frontend theme.</li><li>Προστέθηκε sticky mobile header με λογότυπο και burger menu.</li><li>Ανασχεδιάστηκε αισθητικά η σελίδα Changelog.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.2</strong></div><ul><li>Προστέθηκε ομαλό stagger animation στους χαρακτήρες του tooltip των γραφημάτων.</li><li>Το Changelog μεταφέρθηκε σε ανεξάρτητη σελίδα και εμφανίζεται ως ξεχωριστή επιλογή στο sidebar.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.1</strong></div><ul><li>Βελτιώθηκε η στοίχιση και η εμφάνιση του footer στο sidebar.</li><li>Μόνο η λέξη Dazzlink αποτελεί σύνδεσμο, χωρίς background στο hover.</li><li>Η Έξοδος κεντραρίστηκε και στο hover εφαρμόζει μόνο διακριτικό scale up.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.0</strong></div><ul><li>Μη καταστροφικά database migrations και προστασία προϊόντων, τιμών ημέρας και ιστορικού κατά τα updates.</li><li>Πλήρως responsive manager με burger menu και off-canvas sidebar.</li><li>Νέο footer sidebar με Dazzlink link και ασφαλές WordPress logout.</li><li>Η γραμματοσειρά του manager ορίστηκε σε Geom με fallback στη γραμματοσειρά της σελίδας.</li><li>Διαφανές/inherit φόντο για τα δημόσια γραφήματα και προαιρετικό light mode.</li><li>Νέα Παραγγελία από admin με δυναμικά πεδία, required validation και dependencies από τον Form Builder.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.4</strong></div><ul><li>Επανήλθε ο οπτικός επιλογέας χρώματος στις ρυθμίσεις εμφάνισης της φόρμας.</li><li>Προστέθηκε ξεχωριστός slider opacity, με αυτόματη αποθήκευση σε μορφή RGBA.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.3</strong></div><ul><li>Προστέθηκε υποστήριξη χρωμάτων RGBA με opacity στις ρυθμίσεις εμφάνισης των φορμών.</li><li>Προστέθηκε Import μεμονωμένης φόρμας από το JSON αρχείο που δημιουργεί το αντίστοιχο Export.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.2</strong></div><ul><li>Αφαιρέθηκε το ανεπιθύμητο οριζόντιο scroll από το κάτω μέρος του sidebar.</li><li>Το sidebar χρησιμοποιεί πλέον αποκλειστικά κατακόρυφη κύλιση όταν το περιεχόμενο ξεπερνά το διαθέσιμο ύψος.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.1</strong></div><ul><li>Προστέθηκε κουμπί Export σε κάθε φόρμα για λήψη μεμονωμένου JSON backup της διαμόρφωσής της.</li><li>Το αρχείο περιλαμβάνει πεδία, dependencies, responsive πλάτη και ρυθμίσεις απάντησης μετά την υποβολή, με checksum ακεραιότητας.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.0</strong></div><ul><li>Προστέθηκε πλήρες τοπικό Backup / Restore για ρυθμίσεις, φόρμες, τιμές, ιστορικό και παραγγελίες.</li><li>Τα backup αρχεία ελέγχονται με checksum πριν από την επαναφορά και δεν αποθηκεύονται στον server.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.4</strong></div><ul><li>Διορθώθηκε η θέση του κουμπιού σύμπτυξης όταν το sidebar είναι κλειστό, ώστε να ακολουθεί ακριβώς την ίδια στήλη στοίχισης με τα υπόλοιπα εικονίδια.</li><li>Αφαιρέθηκε κάθε παλιό absolute positioning και μετατόπιση του κουμπιού στη συμπτυγμένη προβολή.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.3</strong></div><ul><li>Διορθώθηκε οριστικά η οριζόντια στοίχιση του εικονιδίου σύμπτυξης με τα υπόλοιπα εικονίδια όταν το sidebar είναι κλειστό.</li><li>Το κουμπί σύμπτυξης παραμένει πλήρως διαφανές σε hover και focus, χωρίς background.</li><li>Ενημερώθηκε το ενσωματωμένο changelog της τεκμηρίωσης με τα builds 4.0.2 και 4.0.3.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.2</strong></div><ul><li>Βελτιώθηκε η στοίχιση του εικονιδίου σύμπτυξης στη συμπτυγμένη προβολή.</li><li>Αφαιρέθηκε το background στο hover και στο focus του κουμπιού σύμπτυξης.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.1</strong></div><ul><li>Βελτιώθηκε η συμπτυγμένη εμφάνιση του sidebar και το ενεργό εικονίδιο.</li><li>Ανασχεδιάστηκε το κουμπί σύμπτυξης με κίνηση κατεύθυνσης και εμφάνιση της ετικέτας στο hover.</li><li>Ενοποιήθηκε το πλάτος της κεφαλίδας του Form Builder με τα υπόλοιπα panels.</li><li>Προστέθηκε ορατή ενότητα changelog στην τεκμηρίωση.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.0</strong></div><ul><li>Πρώτη σταθερή έκδοση του GRFuel Manager.</li><li>Form Builder με responsive πλάτη, dependencies και εξαρτώμενα πεδία τόπου παράδοσης.</li><li>Διαχείριση παραγγελιών, XLSX/PDF exports, ειδοποιήσεις και μη αναγνωσμένο badge.</li><li>Τιμές Ημέρας, ιστορικό και ξεχωριστά desktop/mobile γραφήματα.</li></ul></article></div><p class="grfuel-changelog-note">Το πλήρες ιστορικό αλλαγών περιλαμβάνεται επίσης στο αρχείο <code>CHANGELOG.md</code> του plugin.</p></section>
+                <section class="grfuel-changelog-shell"><header class="grfuel-changelog-hero"><span class="dashicons dashicons-backup"></span><div><small>GRFuel Manager</small><h2>Ιστορικό εκδόσεων</h2><p>Όλες οι βελτιώσεις και οι διορθώσεις του manager, οργανωμένες ανά έκδοση.</p></div></header><div class="grfuel-changelog-timeline"><article class="grfuel-changelog-release is-latest"><div class="grfuel-changelog-version"><strong>4.3.7</strong><span>Τρέχουσα έκδοση</span></div><ul><li>Επαναφορά όλων των αλλαγών έως την 4.3.6 πάνω στην ασφαλή βάση, χωρίς να επηρεάζονται τα Acrobat PDF icons.</li><li>Τα τελευταία έξι πεδία του PDF εμφανίζονται με σταθερή σειρά: Διεύθυνση, Τηλέφωνο, Email, Επιθυμητή ημερομηνία, Ποσότητα, Σύνολο παραγγελίας.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.3</strong></div><ul><li>Διορθώθηκε οριστικά το PDF ώστε να αφαιρεί την αποδοχή Πολιτικής Απορρήτου με έλεγχο πεδίου, label και αποθηκευμένης τιμής.</li><li>Το Σύνολο παραγγελίας εμφανίζεται στη θέση της αποδοχής και υπολογίζεται εκ νέου όταν λείπει από παλαιότερη παραγγελία.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.2</strong></div><ul><li>Πρώτη προσαρμογή της διάταξης PDF για απόκρυψη πολιτικής και μεταφορά του συνόλου.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.1</strong></div><ul><li>Προστέθηκε υδατογράφημα PNG/SVG στο PDF Branding με αποθηκευόμενο opacity και κεντραρισμένη διάταξη 3/4 × 3/5 της σελίδας.</li><li>Το εικονίδιο PDF στις παραγγελίες αντικαταστάθηκε με το κλασικό σύμβολο Acrobat.</li><li>Το Changelog ανασχεδιάστηκε σύμφωνα με τη διάταξη του Stavros Floral Studio Suite.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.3.0</strong></div><ul><li>Προστέθηκε admin-only mobile push μέσω OneSignal, με σύνδεση συσκευής, δοκιμαστική αποστολή και αυτόματη ειδοποίηση σε κάθε νέα παραγγελία.</li><li>Τα push εμφανίζουν μόνο ασφαλή στοιχεία παραγγελίας και το OneSignal API key παραμένει αποκλειστικά στον WordPress server.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.8</strong></div><ul><li>Διορθώθηκε το οριζόντιο overflow στο mobile ώστε ο manager, το sticky header και όλα τα panels να μην ξεπερνούν το διαθέσιμο πλάτος της οθόνης.</li><li>Φορτώνεται επίσημα η γραμματοσειρά Geom από Google Fonts και εφαρμόζεται σε ολόκληρο το περιβάλλον του manager.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.7</strong></div><ul><li>Διορθώθηκε το count-up animation των αριθμητικών τιμών στα tooltips των γραφημάτων κατά το hover ή το touch.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.6</strong></div><ul><li>Το mobile header τοποθετήθηκε στο απολύτως επάνω άκρο της οθόνης, ανεξάρτητα από την WordPress admin bar.</li><li>Το off-canvas sidebar καλύπτει πλέον ολόκληρο το διαθέσιμο ύψος της συσκευής, με υποστήριξη dynamic viewport και safe areas.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.5</strong></div><ul><li>Το tooltip των γραφημάτων ακολουθεί πλέον το animation του reference plugin, με ομαλή εμφάνιση και animated μετάβαση της αριθμητικής τιμής.</li><li>Το mobile menu ανασχεδιάστηκε με sticky επάνω μπάρα, burger αριστερά, κεντραρισμένο λογότυπο και ξεχωριστό κουμπί κλεισίματος μέσα στο off-canvas sidebar.</li><li>Οι κύκλοι του Changelog κεντραρίστηκαν επάνω στην κάθετη γραμμή και η έκδοση εμφανίζεται ως απλό κείμενο δεξιά από κάθε κύκλο.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.4</strong></div><ul><li>Το off-canvas sidebar στο κινητό εμφανίζει πλέον πάντα τόσο τα εικονίδια όσο και τους τίτλους των επιλογών.</li><li>Διορθώθηκε η θέση και το responsive μέγεθος του burger button ώστε να παραμένει πλήρως μέσα στην οθόνη.</li><li>Το Changelog έγινε πλήρους πλάτους, ευθυγραμμισμένο με το πλαίσιο τίτλου, και ανανεώθηκε αισθητικά.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.3</strong></div><ul><li>Διορθώθηκε η δυναμική εμφάνιση πεδίων στη Νέα Παραγγελία ώστε να ακολουθεί πιστά τα dependencies της επιλεγμένης φόρμας.</li><li>Τα υποχρεωτικά πεδία ενεργοποιούνται μόνο όταν είναι ορατά.</li><li>Η διάταξη πεδίων του admin χρησιμοποιεί ανεξάρτητο responsive grid και όχι classes του frontend theme.</li><li>Προστέθηκε sticky mobile header με λογότυπο και burger menu.</li><li>Ανασχεδιάστηκε αισθητικά η σελίδα Changelog.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.2</strong></div><ul><li>Προστέθηκε ομαλό stagger animation στους χαρακτήρες του tooltip των γραφημάτων.</li><li>Το Changelog μεταφέρθηκε σε ανεξάρτητη σελίδα και εμφανίζεται ως ξεχωριστή επιλογή στο sidebar.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.1</strong></div><ul><li>Βελτιώθηκε η στοίχιση και η εμφάνιση του footer στο sidebar.</li><li>Μόνο η λέξη Dazzlink αποτελεί σύνδεσμο, χωρίς background στο hover.</li><li>Η Έξοδος κεντραρίστηκε και στο hover εφαρμόζει μόνο διακριτικό scale up.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.2.0</strong></div><ul><li>Μη καταστροφικά database migrations και προστασία προϊόντων, τιμών ημέρας και ιστορικού κατά τα updates.</li><li>Πλήρως responsive manager με burger menu και off-canvas sidebar.</li><li>Νέο footer sidebar με Dazzlink link και ασφαλές WordPress logout.</li><li>Η γραμματοσειρά του manager ορίστηκε σε Geom με fallback στη γραμματοσειρά της σελίδας.</li><li>Διαφανές/inherit φόντο για τα δημόσια γραφήματα και προαιρετικό light mode.</li><li>Νέα Παραγγελία από admin με δυναμικά πεδία, required validation και dependencies από τον Form Builder.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.4</strong></div><ul><li>Επανήλθε ο οπτικός επιλογέας χρώματος στις ρυθμίσεις εμφάνισης της φόρμας.</li><li>Προστέθηκε ξεχωριστός slider opacity, με αυτόματη αποθήκευση σε μορφή RGBA.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.3</strong></div><ul><li>Προστέθηκε υποστήριξη χρωμάτων RGBA με opacity στις ρυθμίσεις εμφάνισης των φορμών.</li><li>Προστέθηκε Import μεμονωμένης φόρμας από το JSON αρχείο που δημιουργεί το αντίστοιχο Export.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.2</strong></div><ul><li>Αφαιρέθηκε το ανεπιθύμητο οριζόντιο scroll από το κάτω μέρος του sidebar.</li><li>Το sidebar χρησιμοποιεί πλέον αποκλειστικά κατακόρυφη κύλιση όταν το περιεχόμενο ξεπερνά το διαθέσιμο ύψος.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.1</strong></div><ul><li>Προστέθηκε κουμπί Export σε κάθε φόρμα για λήψη μεμονωμένου JSON backup της διαμόρφωσής της.</li><li>Το αρχείο περιλαμβάνει πεδία, dependencies, responsive πλάτη και ρυθμίσεις απάντησης μετά την υποβολή, με checksum ακεραιότητας.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.1.0</strong></div><ul><li>Προστέθηκε πλήρες τοπικό Backup / Restore για ρυθμίσεις, φόρμες, τιμές, ιστορικό και παραγγελίες.</li><li>Τα backup αρχεία ελέγχονται με checksum πριν από την επαναφορά και δεν αποθηκεύονται στον server.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.4</strong></div><ul><li>Διορθώθηκε η θέση του κουμπιού σύμπτυξης όταν το sidebar είναι κλειστό, ώστε να ακολουθεί ακριβώς την ίδια στήλη στοίχισης με τα υπόλοιπα εικονίδια.</li><li>Αφαιρέθηκε κάθε παλιό absolute positioning και μετατόπιση του κουμπιού στη συμπτυγμένη προβολή.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.3</strong></div><ul><li>Διορθώθηκε οριστικά η οριζόντια στοίχιση του εικονιδίου σύμπτυξης με τα υπόλοιπα εικονίδια όταν το sidebar είναι κλειστό.</li><li>Το κουμπί σύμπτυξης παραμένει πλήρως διαφανές σε hover και focus, χωρίς background.</li><li>Ενημερώθηκε το ενσωματωμένο changelog της τεκμηρίωσης με τα builds 4.0.2 και 4.0.3.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.2</strong></div><ul><li>Βελτιώθηκε η στοίχιση του εικονιδίου σύμπτυξης στη συμπτυγμένη προβολή.</li><li>Αφαιρέθηκε το background στο hover και στο focus του κουμπιού σύμπτυξης.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.1</strong></div><ul><li>Βελτιώθηκε η συμπτυγμένη εμφάνιση του sidebar και το ενεργό εικονίδιο.</li><li>Ανασχεδιάστηκε το κουμπί σύμπτυξης με κίνηση κατεύθυνσης και εμφάνιση της ετικέτας στο hover.</li><li>Ενοποιήθηκε το πλάτος της κεφαλίδας του Form Builder με τα υπόλοιπα panels.</li><li>Προστέθηκε ορατή ενότητα changelog στην τεκμηρίωση.</li></ul></article><article class="grfuel-changelog-release"><div class="grfuel-changelog-version"><strong>4.0.0</strong></div><ul><li>Πρώτη σταθερή έκδοση του GRFuel Manager.</li><li>Form Builder με responsive πλάτη, dependencies και εξαρτώμενα πεδία τόπου παράδοσης.</li><li>Διαχείριση παραγγελιών, XLSX/PDF exports, ειδοποιήσεις και μη αναγνωσμένο badge.</li><li>Τιμές Ημέρας, ιστορικό και ξεχωριστά desktop/mobile γραφήματα.</li></ul></article></div><p class="grfuel-changelog-note">Το πλήρες ιστορικό αλλαγών περιλαμβάνεται επίσης στο αρχείο <code>CHANGELOG.md</code> του plugin.</p></section>
             </main>
         </div>
         <?php
@@ -2311,6 +3167,10 @@ final class SFV_Plugin {
 
     public function register_settings(): void {
         register_setting( 'sfv_settings_group', self::OPTION, array( 'sanitize_callback' => array( $this, 'sanitize_settings' ), 'default' => array() ) );
+    }
+
+    public function manager_settings_capability(): string {
+        return self::CAPABILITY;
     }
 
     public function sanitize_settings( $input ): array {
@@ -2347,12 +3207,16 @@ final class SFV_Plugin {
         }
         $this->record_daily_price_history( (array) ( $defaults['daily_prices'] ?? array() ), $daily_prices );
         $stored_settings = (array) get_option( self::OPTION, array() );
+        $submitted_secret_key = trim( (string) ( $input['secret_key'] ?? '' ) );
+        $turnstile_secret_key = '' !== $submitted_secret_key ? sanitize_text_field( $submitted_secret_key ) : sanitize_text_field( $stored_settings['secret_key'] ?? '' );
         $submitted_api_key = trim( (string) ( $input['onesignal_api_key'] ?? '' ) );
         $onesignal_api_key = '' !== $submitted_api_key ? sanitize_text_field( $submitted_api_key ) : sanitize_text_field( $stored_settings['onesignal_api_key'] ?? '' );
         return array(
             'site_key' => sanitize_text_field( $input['site_key'] ?? '' ),
-            'secret_key' => sanitize_text_field( $input['secret_key'] ?? '' ),
+            'secret_key' => $turnstile_secret_key,
             'rate_limit' => max( 1, min( 100, absint( $input['rate_limit'] ?? 5 ) ) ),
+            'retention_days' => max( 0, min( 3650, absint( $input['retention_days'] ?? 0 ) ) ),
+            'manager_session_minutes' => max( 15, min( 10080, absint( $input['manager_session_minutes'] ?? 480 ) ) ),
             'label_color' => $color( $input['label_color'] ?? '', $defaults['label_color'] ),
             'label_font' => $choice( $input['label_font'] ?? '', $font_keys, 'inherit' ),
             'label_size' => $range( $input['label_size'] ?? 14, 10, 32, 14 ),
@@ -2466,8 +3330,10 @@ final class SFV_Plugin {
                         <div class="sfv-settings-pane-header"><div><span class="sfv-settings-kicker"><?php esc_html_e( 'Security', 'secure-form-vault' ); ?></span><h2><?php esc_html_e( 'Cloudflare Turnstile', 'secure-form-vault' ); ?></h2><p><?php esc_html_e( 'Προστατεύουμε τις φόρμες από bots και περιορίζουμε επαναλαμβανόμενες υποβολές.', 'secure-form-vault' ); ?></p></div><span class="sfv-status <?php echo $configured ? 'is-success' : 'is-warning'; ?>"><?php echo esc_html( $configured ? __( 'Configured', 'secure-form-vault' ) : __( 'Action required', 'secure-form-vault' ) ); ?></span></div>
                         <div class="sfv-settings-form-grid sfv-settings-form-grid-security">
                             <label class="sfv-setting-control sfv-setting-control-wide"><span><?php esc_html_e( 'Site key', 'secure-form-vault' ); ?></span><input type="text" id="sfv_site_key" name="<?php echo esc_attr( self::OPTION ); ?>[site_key]" value="<?php echo esc_attr( $s['site_key'] ); ?>" autocomplete="off"><small><?php esc_html_e( 'Το δημόσιο κλειδί που χρησιμοποιείται από το Turnstile widget.', 'secure-form-vault' ); ?></small></label>
-                            <label class="sfv-setting-control sfv-setting-control-wide"><span><?php esc_html_e( 'Secret key', 'secure-form-vault' ); ?></span><input type="password" autocomplete="new-password" id="sfv_secret_key" name="<?php echo esc_attr( self::OPTION ); ?>[secret_key]" value="<?php echo esc_attr( $s['secret_key'] ); ?>"><small><?php esc_html_e( 'Χρησιμοποιείται αποκλειστικά για server-side verification.', 'secure-form-vault' ); ?></small></label>
+                            <label class="sfv-setting-control sfv-setting-control-wide"><span><?php esc_html_e( 'Secret key', 'secure-form-vault' ); ?></span><input type="password" autocomplete="new-password" id="sfv_secret_key" name="<?php echo esc_attr( self::OPTION ); ?>[secret_key]" value="" placeholder="<?php echo empty( $s['secret_key'] ) ? esc_attr__( 'Enter the Turnstile secret', 'secure-form-vault' ) : esc_attr__( 'Saved — leave blank to keep it', 'secure-form-vault' ); ?>"><small><?php esc_html_e( 'Χρησιμοποιείται αποκλειστικά για server-side verification.', 'secure-form-vault' ); ?></small></label>
                             <label class="sfv-setting-control"><span><?php esc_html_e( 'Υποβολές ανά IP / ώρα', 'secure-form-vault' ); ?></span><input type="number" min="1" max="100" id="sfv_rate_limit" name="<?php echo esc_attr( self::OPTION ); ?>[rate_limit]" value="<?php echo absint( $s['rate_limit'] ); ?>"><small><?php esc_html_e( 'Αποθηκεύεται ανώνυμο HMAC hash και όχι η πραγματική IP.', 'secure-form-vault' ); ?></small></label>
+                            <label class="sfv-setting-control"><span><?php esc_html_e( 'Αυτόματη διατήρηση (ημέρες)', 'secure-form-vault' ); ?></span><input type="number" min="0" max="3650" name="<?php echo esc_attr( self::OPTION ); ?>[retention_days]" value="<?php echo absint( $s['retention_days'] ); ?>"><small><?php esc_html_e( '0 = διατήρηση χωρίς αυτόματη διαγραφή. Οι παλαιότερες υποβολές διαγράφονται καθημερινά.', 'secure-form-vault' ); ?></small></label>
+                            <label class="sfv-setting-control"><span><?php esc_html_e( 'Διάρκεια συνεδρίας Manager', 'secure-form-vault' ); ?></span><div class="sfv-unit-input"><input type="number" min="15" max="10080" step="15" name="<?php echo esc_attr( self::OPTION ); ?>[manager_session_minutes]" value="<?php echo absint( $s['manager_session_minutes'] ); ?>"><span>λεπτά</span></div><small><?php esc_html_e( 'Από 15 λεπτά έως 7 ημέρες. Το floating κουμπί επαναφέρει αυτή τη διάρκεια από την αρχή.', 'secure-form-vault' ); ?></small></label>
                         </div>
                         <div class="sfv-settings-note"><span class="dashicons dashicons-lock"></span><div><strong><?php esc_html_e( 'Πολυεπίπεδη προστασία', 'secure-form-vault' ); ?></strong><p><?php esc_html_e( 'Το Turnstile λειτουργεί συμπληρωματικά με honeypot, timing checks και rate limiting.', 'secure-form-vault' ); ?></p></div></div>
                     </section>
@@ -2651,11 +3517,11 @@ final class SFV_Plugin {
 
     private function payload_value_by_terms( array $payload, array $terms ): string {
         foreach ( $payload as $key => $item ) {
-            $label = strtolower( remove_accents( (string) ( $item['label'] ?? '' ) ) );
-            $field_key = strtolower( remove_accents( (string) $key ) );
+            $label = $this->xlsx_normalize_text( (string) ( $item['label'] ?? '' ) );
+            $field_key = $this->xlsx_normalize_text( (string) $key );
             $haystack = $label . ' ' . $field_key;
             foreach ( $terms as $term ) {
-                if ( str_contains( $haystack, strtolower( remove_accents( $term ) ) ) ) {
+                if ( str_contains( $haystack, $this->xlsx_normalize_text( (string) $term ) ) ) {
                     return trim( (string) ( $item['value'] ?? '' ) );
                 }
             }
@@ -2675,7 +3541,8 @@ final class SFV_Plugin {
             }
         }
         $customer_type = $this->payload_value_by_terms( $payload, array( 'τυπος πελατη', 'τύπος πελάτη', 'customer type', 'customer_type' ) );
-        $is_company = (bool) preg_match( '/εταιρ|εταιρει|επιχειρ|company|business|επαγγελ|νομικ|corporate|enterprise/i', remove_accents( $customer_type ) );
+        $customer_type_normalized = $this->xlsx_normalize_text( $customer_type );
+        $is_company = (bool) preg_match( '/εταιρ|εταιρει|επιχειρ|company|business|επαγγελ|νομικ|corporate|enterprise/u', $customer_type_normalized );
         $company = $this->payload_value_by_terms( $payload, array( 'επωνυμια', 'επωνυμία', 'εταιρεια', 'εταιρεία', 'company name', 'business_name' ) );
         $full_name = $this->payload_value_by_terms( $payload, array( 'ονοματεπωνυμο', 'ονοματεπώνυμο', 'ονομα και επωνυμο', 'όνομα και επώνυμο', 'ονομα πελατη', 'όνομα πελάτη', 'customer name', 'full name', 'fullname', 'full_name' ) );
         $first = $this->payload_value_by_terms( $payload, array( 'ονομα', 'όνομα', 'first name', 'first_name' ) );
@@ -2704,6 +3571,8 @@ final class SFV_Plugin {
         return array(
             'name' => $display_name ?: __( 'Οικιακός πελάτης', 'secure-form-vault' ),
             'customer' => $display_name ?: __( 'Οικιακός πελάτης', 'secure-form-vault' ),
+            'customer_type' => $customer_type,
+            'is_company' => $is_company,
             'product' => $product ?: '—',
             'quantity' => $quantity ?: '—',
         );
@@ -2738,6 +3607,7 @@ final class SFV_Plugin {
     }
 
     public function create_admin_order(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
         $form_id = absint( $_POST['form_id'] ?? 0 );
         check_admin_referer( 'grfuel_create_admin_order_' . $form_id );
@@ -2805,7 +3675,6 @@ final class SFV_Plugin {
             <?php
             $maintenance_status = sanitize_key( wp_unslash( $_GET['sfv_status'] ?? '' ) );
             $maintenance_messages = array(
-                'deleted' => array( 'success', __( 'Η παραγγελία διαγράφηκε οριστικά.', 'secure-form-vault' ) ),
                 'cleared' => array( 'success', __( 'Όλες οι υποβολές διαγράφηκαν οριστικά.', 'secure-form-vault' ) ),
                 'reset' => array( 'success', __( 'Η αρίθμηση υποβολών επαναφέρθηκε. Η επόμενη υποβολή θα έχει ID 1.', 'secure-form-vault' ) ),
                 'reset_blocked' => array( 'warning', __( 'Η επαναφορά ID επιτρέπεται μόνο όταν δεν υπάρχουν αποθηκευμένες υποβολές.', 'secure-form-vault' ) ),
@@ -2840,11 +3709,16 @@ final class SFV_Plugin {
                                     <div><span class="sfv-mobile-label"><?php esc_html_e( 'Προϊόν', 'secure-form-vault' ); ?></span><?php echo esc_html( $summary['product'] ); ?></div>
                                     <div><span class="sfv-mobile-label"><?php esc_html_e( 'Ποσότητα', 'secure-form-vault' ); ?></span><?php echo esc_html( $summary['quantity'] ); ?></div>
                                     <time datetime="<?php echo esc_attr( mysql2date( 'c', $row->submitted_at, false ) ); ?>"><?php echo esc_html( get_date_from_gmt( $row->submitted_at, 'd/m/Y H:i' ) ); ?></time>
-                                    <div class="sfv-row-actions"><a class="sfv-icon-action" target="_blank" rel="noopener" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sfv_export_submission_pdf&id=' . absint( $row->id ) ), 'sfv_export_submission_pdf_' . absint( $row->id ) ) ); ?>" aria-label="<?php esc_attr_e( 'PDF', 'secure-form-vault' ); ?>"><svg class="sfv-acrobat-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12.4 2.2c1.4.2 1.8 2.2 1.2 4.7-.2.8-.5 1.7-.9 2.7 1.1 2 2.3 3.5 3.5 4.6 2.6-.4 4.5-.2 5.1.8.4.7.1 1.6-.7 2.2-1.2.9-3.2.4-5.2-1.2-2.2.4-4.7 1.1-6.8 2-1.2 2.1-2.6 3.5-3.8 3.7-.8.1-1.5-.3-1.7-1-.4-1.3 1.2-2.9 4.2-4.3 1-1.8 2-4 2.8-6.1-.8-1.8-1.2-3.5-.9-4.9.3-2 1.7-3.4 3.2-3.2Zm-6.7 17.5c.4-.2.9-.7 1.5-1.5-1.1.6-1.6 1.1-1.5 1.5Zm4.5-3.7c1.3-.5 2.7-.9 4.1-1.2-.9-.9-1.7-2-2.5-3.2-.5 1.4-1 2.9-1.6 4.4Zm1.4-11.6c-.3.3-.4 1.5.1 3 .3-1 .5-1.9.4-2.5 0-.4-.2-.6-.5-.5Zm6.2 11.2c1 .5 1.8.7 2.1.5.1-.1.1-.2 0-.3-.3-.4-1.1-.5-2.1-.2Z"/></svg></a><a class="sfv-icon-action sfv-delete-link" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sfv_delete_submission&id=' . absint( $row->id ) ), 'sfv_delete_' . absint( $row->id ) ) ); ?>" onclick="return confirm('<?php echo esc_js( __( 'Να διαγραφεί οριστικά αυτή η παραγγελία;', 'secure-form-vault' ) ); ?>')"><span class="dashicons dashicons-trash"></span></a></div>
+                                    <div class="sfv-row-actions"><a class="sfv-icon-action" target="_blank" rel="noopener" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=sfv_export_submission_pdf&id=' . absint( $row->id ) ), 'sfv_export_submission_pdf_' . absint( $row->id ) ) ); ?>" aria-label="<?php esc_attr_e( 'PDF', 'secure-form-vault' ); ?>"><svg class="sfv-acrobat-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path fill="currentColor" d="M12.4 2.2c1.4.2 1.8 2.2 1.2 4.7-.2.8-.5 1.7-.9 2.7 1.1 2 2.3 3.5 3.5 4.6 2.6-.4 4.5-.2 5.1.8.4.7.1 1.6-.7 2.2-1.2.9-3.2.4-5.2-1.2-2.2.4-4.7 1.1-6.8 2-1.2 2.1-2.6 3.5-3.8 3.7-.8.1-1.5-.3-1.7-1-.4-1.3 1.2-2.9 4.2-4.3 1-1.8 2-4 2.8-6.1-.8-1.8-1.2-3.5-.9-4.9.3-2 1.7-3.4 3.2-3.2Zm-6.7 17.5c.4-.2.9-.7 1.5-1.5-1.1.6-1.6 1.1-1.5 1.5Zm4.5-3.7c1.3-.5 2.7-.9 4.1-1.2-.9-.9-1.7-2-2.5-3.2-.5 1.4-1 2.9-1.6 4.4Zm1.4-11.6c-.3.3-.4 1.5.1 3 .3-1 .5-1.9.4-2.5 0-.4-.2-.6-.5-.5Zm6.2 11.2c1 .5 1.8.7 2.1.5.1-.1.1-.2 0-.3-.3-.4-1.1-.5-2.1-.2Z"/></svg></a><?php if ( current_user_can( self::ADMIN_CAPABILITY ) ) : ?><button type="submit" form="sfv-delete-<?php echo absint( $row->id ); ?>" class="sfv-icon-action sfv-delete-link" aria-label="<?php esc_attr_e( 'Διαγραφή παραγγελίας', 'secure-form-vault' ); ?>"><span class="dashicons dashicons-trash"></span></button><?php endif; ?></div>
                                 </div>
                             <?php endforeach; if ( empty( $rows ) ) : ?><div class="sfv-empty-submissions"><span class="dashicons dashicons-email-alt"></span><h3><?php esc_html_e( 'Δεν βρέθηκαν παραγγελίες', 'secure-form-vault' ); ?></h3><p><?php esc_html_e( 'Οι νέες παραγγελίες θα εμφανίζονται εδώ αυτόματα.', 'secure-form-vault' ); ?></p></div><?php endif; ?>
                         </div>
                     </form>
+                    <?php if ( current_user_can( self::ADMIN_CAPABILITY ) ) : foreach ( $rows as $delete_row ) : ?>
+                        <form id="sfv-delete-<?php echo absint( $delete_row->id ); ?>" class="sfv-inline-delete-form" method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Να διαγραφεί οριστικά αυτή η παραγγελία;', 'secure-form-vault' ) ); ?>')">
+                            <input type="hidden" name="action" value="sfv_delete_submission"><input type="hidden" name="id" value="<?php echo absint( $delete_row->id ); ?>"><?php wp_nonce_field( 'sfv_delete_' . absint( $delete_row->id ) ); ?>
+                        </form>
+                    <?php endforeach; endif; ?>
                     <?php if ( $pages > 1 ) : ?><nav class="sfv-pagination" aria-label="<?php esc_attr_e( 'Σελιδοποίηση παραγγελιών', 'secure-form-vault' ); ?>"><?php echo wp_kses_post( paginate_links( array( 'base' => add_query_arg( 'paged', '%#%' ), 'format' => '', 'current' => $paged, 'total' => $pages, 'prev_text' => '←', 'next_text' => '→' ) ) ); ?></nav><?php endif; ?>
                 </main>
                 <aside id="sfv-export" class="sfv-panel sfv-export-card">
@@ -2856,11 +3730,11 @@ final class SFV_Plugin {
                         <label><span><?php esc_html_e( 'Μορφή αρχείου', 'secure-form-vault' ); ?></span><select name="format"><option value="xlsx"><?php esc_html_e( 'Βιβλίο εργασίας Excel (.xlsx)', 'secure-form-vault' ); ?></option><option value="xml"><?php esc_html_e( 'Αρχείο XML (.xml)', 'secure-form-vault' ); ?></option></select></label>
                         <button class="sfv-btn sfv-btn-primary sfv-btn-block" type="submit"><span class="dashicons dashicons-download"></span><?php esc_html_e( 'Δημιουργία αρχείου εξαγωγής', 'secure-form-vault' ); ?></button>
                     </form>
-                    <div class="sfv-maintenance-card"><div class="sfv-maintenance-heading"><span class="dashicons dashicons-shield-alt"></span><div><h3><?php esc_html_e( 'GDPR & συντήρηση', 'secure-form-vault' ); ?></h3><p><?php esc_html_e( 'Οριστική διαγραφή δεδομένων και διαχείριση αρίθμησης.', 'secure-form-vault' ); ?></p></div></div>
+                    <?php if ( current_user_can( self::ADMIN_CAPABILITY ) ) : ?><div class="sfv-maintenance-card"><div class="sfv-maintenance-heading"><span class="dashicons dashicons-shield-alt"></span><div><h3><?php esc_html_e( 'GDPR & συντήρηση', 'secure-form-vault' ); ?></h3><p><?php esc_html_e( 'Οριστική διαγραφή δεδομένων και διαχείριση αρίθμησης.', 'secure-form-vault' ); ?></p></div></div>
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Θα διαγραφούν οριστικά όλες οι υποβολές από τη βάση δεδομένων. Η ενέργεια δεν αναιρείται. Συνέχεια;', 'secure-form-vault' ) ); ?>');"><input type="hidden" name="action" value="sfv_clear_submissions"><?php wp_nonce_field( 'sfv_clear_submissions' ); ?><button type="submit" class="sfv-btn sfv-btn-danger sfv-btn-block"><span class="dashicons dashicons-trash"></span><?php esc_html_e( 'Διαγραφή όλων των παραγγελιών', 'secure-form-vault' ); ?></button></form>
                         <p class="sfv-maintenance-help"><?php esc_html_e( 'Η διαγραφή δεν επαναφέρει αυτόματα τον επόμενο αριθμό ID.', 'secure-form-vault' ); ?></p>
                         <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" onsubmit="return confirm('<?php echo esc_js( __( 'Η επόμενη υποβολή θα ξεκινήσει από το ID 1. Η επαναφορά επιτρέπεται μόνο όταν ο πίνακας είναι άδειος. Συνέχεια;', 'secure-form-vault' ) ); ?>');"><input type="hidden" name="action" value="sfv_reset_submission_id"><?php wp_nonce_field( 'sfv_reset_submission_id' ); ?><button type="submit" class="sfv-btn sfv-btn-secondary sfv-btn-block"><span class="dashicons dashicons-update-alt"></span><?php esc_html_e( 'Επαναφορά αρίθμησης παραγγελιών', 'secure-form-vault' ); ?></button></form>
-                    </div>
+                    </div><?php endif; ?>
                 </aside>
             </div>
         </div>
@@ -2869,6 +3743,7 @@ final class SFV_Plugin {
     }
 
     public function export_selected_pdf(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
         check_admin_referer( 'sfv_export_selected_pdf' );
         $ids = array_values( array_unique( array_filter( array_map( 'absint', (array) ( $_POST['submission_ids'] ?? array() ) ) ) ) );
@@ -2907,72 +3782,118 @@ final class SFV_Plugin {
         ?>
 <!doctype html><html lang="el"><head><meta charset="<?php echo esc_attr( get_option( 'blog_charset', 'UTF-8' ) ); ?>"><meta name="viewport" content="width=device-width,initial-scale=1"><title><?php esc_html_e( 'Αναφορά υποβολών', 'secure-form-vault' ); ?></title>
 <style>
-@page{size:A4;margin:0}:root{--pdf-primary:<?php echo esc_attr($pdf_settings['pdf_primary']); ?>;--pdf-accent:<?php echo esc_attr($pdf_settings['pdf_accent']); ?>;--pdf-text:<?php echo esc_attr($pdf_settings['pdf_text']); ?>;--pdf-muted:<?php echo esc_attr($pdf_settings['pdf_muted']); ?>;--pdf-surface:<?php echo esc_attr($pdf_settings['pdf_surface']); ?>}*{box-sizing:border-box}body{margin:0;background:#e9eef5;color:var(--pdf-text);font-family:"Geom",Arial,"Helvetica Neue",sans-serif;font-size:12px;line-height:1.5}.toolbar{position:sticky;top:0;z-index:20;display:flex;justify-content:center;padding:12px;background:rgba(233,238,245,.96);border-bottom:1px solid #d7dee8}.toolbar button{border:0;border-radius:10px;padding:11px 18px;background:var(--pdf-accent);color:#fff;font-weight:800}.document{width:min(820px,calc(100% - 28px));margin:22px auto}.sheet{position:relative;display:flex;flex-direction:column;min-height:270mm;margin-bottom:22px;padding:30px 32px 24px;background:var(--pdf-surface);border-radius:18px;box-shadow:0 18px 60px rgba(30,44,70,.13);overflow:hidden;break-after:page}.pdf-watermark{position:absolute;left:50%;top:50%;width:75%;height:60%;transform:translate(-50%,-50%);object-fit:contain;object-position:center;pointer-events:none;z-index:0}.sheet>*:not(.pdf-watermark){position:relative;z-index:1}.gradient-bar{position:absolute!important;inset:0 0 auto;height:8px}.gradient-bar svg{display:block;width:100%;height:100%}.top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:8px 0 22px;border-bottom:1px solid #dfe5ee}.identity img{display:block;max-width:190px;max-height:64px;width:auto;height:auto;margin-bottom:14px}.brand-name{margin-bottom:14px;color:var(--pdf-primary);font-size:22px;font-weight:850;letter-spacing:-.02em}.identity h1{margin:0 0 6px;font-size:22px;line-height:1.2}.identity p{margin:0;color:var(--pdf-muted);font-size:11px}.doc-badge{min-width:128px;padding:14px;border:1px solid #dfe5ee;border-radius:14px;background:#f8fafc;text-align:right}.doc-badge small{display:block;color:var(--pdf-muted);font-size:10px;font-weight:800;letter-spacing:.02em}.doc-badge strong{display:block;margin-top:4px;font-size:20px}.summary{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px;margin:20px 0}.summary div{min-width:0;padding:13px 14px;border:1px solid #e3e8f0;border-radius:12px;background:#fbfcfe}.summary small,.answer dt{display:block;margin-bottom:5px;color:var(--pdf-muted);font-size:11px;font-weight:700;letter-spacing:0;text-transform:none}.summary strong{display:block;overflow-wrap:anywhere;font-size:13px}.answers-title{display:flex;align-items:center;gap:9px;margin:22px 0 5px;font-size:18px;font-weight:800;text-transform:none}.answers-title:after{content:"";height:1px;flex:1;background:#e3e8f0}.answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:0}.answer{padding:13px 0;border-bottom:1px solid #edf0f4;break-inside:avoid}.answer.full{grid-column:1/-1}.answer dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}.footer{display:flex;justify-content:flex-end;gap:20px;margin-top:auto;padding-top:16px;border-top:1px solid #dfe5ee;color:var(--pdf-muted);font-size:9px;text-align:right}.page-number:after{content:counter(page)}@media print{body{background:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact}.toolbar{display:none}.document{width:100%;margin:0}.sheet{width:210mm;min-height:297mm;margin:0;padding:18mm 16mm 13mm;border-radius:0;box-shadow:none;overflow:hidden}.gradient-bar{height:9mm}.top{padding-top:4mm}.sheet:last-child{break-after:auto}}@media(max-width:640px){.sheet{padding:25px 20px}.top{flex-direction:column}.doc-badge{text-align:left}.summary,.answers{grid-template-columns:1fr}.answer.full{grid-column:auto}}
+@page{size:A4;margin:0}:root{--pdf-primary:<?php echo esc_attr($pdf_settings['pdf_primary']); ?>;--pdf-accent:<?php echo esc_attr($pdf_settings['pdf_accent']); ?>;--pdf-text:<?php echo esc_attr($pdf_settings['pdf_text']); ?>;--pdf-muted:<?php echo esc_attr($pdf_settings['pdf_muted']); ?>;--pdf-surface:<?php echo esc_attr($pdf_settings['pdf_surface']); ?>}*{box-sizing:border-box}body{margin:0;background:#e9eef5;color:var(--pdf-text);font-family:"Geom",Arial,"Helvetica Neue",sans-serif;font-size:12px;line-height:1.5}.toolbar{position:sticky;top:0;z-index:20;display:flex;justify-content:center;padding:12px;background:rgba(233,238,245,.96);border-bottom:1px solid #d7dee8}.toolbar button{border:0;border-radius:10px;padding:11px 18px;background:var(--pdf-accent);color:#fff;font-weight:800}.document{width:min(820px,calc(100% - 28px));margin:22px auto}.sheet{position:relative;display:flex;flex-direction:column;min-height:270mm;margin-bottom:22px;padding:30px 32px 24px;background:var(--pdf-surface);border-radius:18px;box-shadow:0 18px 60px rgba(30,44,70,.13);overflow:hidden;break-after:page}.pdf-watermark{position:absolute;left:50%;top:50%;width:75%;height:60%;transform:translate(-50%,-50%);object-fit:contain;object-position:center;pointer-events:none;z-index:0}.sheet>*:not(.pdf-watermark){position:relative;z-index:1}.gradient-bar{position:absolute!important;inset:0 0 auto;height:8px}.gradient-bar svg{display:block;width:100%;height:100%}.top{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;padding:8px 0 22px;border-bottom:1px solid #dfe5ee}.identity img{display:block;max-width:190px;max-height:64px;width:auto;height:auto;margin-bottom:14px}.brand-name{margin-bottom:14px;color:var(--pdf-primary);font-size:22px;font-weight:850;letter-spacing:-.02em}.identity h1{margin:0 0 6px;font-size:22px;line-height:1.2}.identity p{margin:0;color:var(--pdf-muted);font-size:11px}.doc-badge{min-width:128px;padding:14px;border:1px solid #dfe5ee;border-radius:14px;background:#f8fafc;text-align:right}.doc-badge small{display:block;color:var(--pdf-muted);font-size:10px;font-weight:800;letter-spacing:.02em}.doc-badge strong{display:block;margin-top:4px;font-size:20px}.summary{display:grid;grid-template-columns:1.25fr 1fr 1fr;gap:12px;margin:20px 0}.summary div{min-width:0;padding:13px 14px;border:1px solid #e3e8f0;border-radius:12px;background:#fbfcfe}.summary small,.answer dt{display:block;margin-bottom:5px;color:var(--pdf-muted);font-size:11px;font-weight:700;letter-spacing:0;text-transform:none}.summary strong{display:block;overflow-wrap:anywhere;font-size:13px}.answers-title{display:flex;align-items:center;gap:9px;margin:22px 0 5px;font-size:18px;font-weight:800;text-transform:none}.answers-title:after{content:"";height:1px;flex:1;background:#e3e8f0}.answers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;margin:0}.answers.is-company{grid-template-columns:repeat(6,minmax(0,1fr))}.answers.is-company .answer{grid-column:span 3}.answers.is-company .answer.business-third{grid-column:span 2}.answer{padding:13px 0;border-bottom:1px solid #edf0f4;break-inside:avoid}.answer.full{grid-column:1/-1}.answer dd{margin:0;white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px}.footer{display:flex;justify-content:flex-end;gap:20px;margin-top:auto;padding-top:16px;border-top:1px solid #dfe5ee;color:var(--pdf-muted);font-size:9px;text-align:right}.page-number:after{content:counter(page)}@media print{body{background:#fff;print-color-adjust:exact;-webkit-print-color-adjust:exact}.toolbar{display:none}.document{width:100%;margin:0}.sheet{width:210mm;min-height:297mm;margin:0;padding:18mm 16mm 13mm;border-radius:0;box-shadow:none;overflow:hidden}.gradient-bar{height:9mm}.top{padding-top:4mm}.sheet:last-child{break-after:auto}}@media(max-width:640px){.sheet{padding:25px 20px}.top{flex-direction:column}.doc-badge{text-align:left}.summary,.answers,.answers.is-company{grid-template-columns:1fr}.answers.is-company .answer,.answers.is-company .answer.business-third{grid-column:auto}.answer.full{grid-column:auto}}
 </style></head><body><div class="toolbar"><button type="button" onclick="window.print()"><?php esc_html_e( 'Αποθήκευση ως PDF / Εκτύπωση', 'secure-form-vault' ); ?></button></div><main class="document">
 <?php foreach ( $rows as $row ) : $payload=json_decode($row->payload,true);$payload=is_array($payload)?$payload:array();$summary=$this->submission_summary($payload,(int)$row->form_id);$form_title=get_the_title($row->form_id)?:__('Διαγραμμένη φόρμα','secure-form-vault');$submitted_local=get_date_from_gmt($row->submitted_at,'d/m/Y · '.get_option('time_format'));$field_titles=array();$privacy_field_keys=array();$form_fields=get_post_meta((int)$row->form_id,'_sfv_fields',true);if(is_array($form_fields)){foreach($form_fields as $form_field){$field_key=sanitize_key($form_field['key']??'');if(''===$field_key)continue;$placeholder=trim((string)($form_field['placeholder']??''));$field_label=trim((string)($form_field['label']??''));$checkbox_value=trim((string)($form_field['checkbox_value']??''));$title=''!==$placeholder?$placeholder:(''!==$field_label?$field_label:$field_key);$field_titles[$field_key]=preg_replace('/\s*\*\s*$/u','',$title);$privacy_probe=$this->xlsx_normalize_text($field_key.' '.$field_label.' '.$placeholder.' '.$checkbox_value);if('checkbox'===sanitize_key((string)($form_field['type']??''))&&(str_contains($privacy_probe,'πολιτικη απορρητου')||str_contains($privacy_probe,'privacy')||str_contains($privacy_probe,'gdpr')||str_contains($privacy_probe,'διαβασα κατανοησα και συμφωνω'))){$privacy_field_keys[$field_key]=true;}}} ?>
 <section class="sheet"><?php if ( $pdf_watermark ) : ?><img class="pdf-watermark" src="<?php echo esc_url( $pdf_watermark ); ?>" alt="" aria-hidden="true" style="opacity:<?php echo esc_attr( number_format( $pdf_watermark_opacity, 2, '.', '' ) ); ?>"><?php endif; ?><div class="gradient-bar" aria-hidden="true"><svg viewBox="0 0 1000 20" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sfvPdfGradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="<?php echo esc_attr($pdf_settings['pdf_primary']); ?>"/><stop offset="68%" stop-color="<?php echo esc_attr($pdf_settings['pdf_accent']); ?>"/><stop offset="100%" stop-color="<?php echo esc_attr($pdf_settings['pdf_accent']); ?>" stop-opacity=".55"/></linearGradient></defs><rect width="1000" height="20" fill="url(#sfvPdfGradient)"/></svg></div><header class="top"><div class="identity"><?php if ( $pdf_logo ) : ?><img src="<?php echo esc_url( $pdf_logo ); ?>" alt="<?php echo esc_attr( $pdf_brand ); ?>"><?php else : ?><div class="brand-name"><?php echo esc_html( $pdf_brand ); ?></div><?php endif; ?><h1><?php echo esc_html($form_title); ?></h1><p><?php echo esc_html($submitted_local); ?></p></div><div class="doc-badge"><small><?php esc_html_e('Submission ID','secure-form-vault'); ?></small><strong>#<?php echo absint($row->id); ?></strong></div></header>
 <section class="summary"><div><small><?php esc_html_e('Πελάτης','secure-form-vault'); ?></small><strong><?php echo esc_html($summary['name']); ?></strong></div><div><small><?php esc_html_e('Προϊόν','secure-form-vault'); ?></small><strong><?php echo esc_html($summary['product']); ?></strong></div><div><small><?php esc_html_e('Ποσότητα','secure-form-vault'); ?></small><strong><?php echo esc_html($summary['quantity']); ?></strong></div></section>
 <h2 class="answers-title"><?php esc_html_e('Στοιχεία αιτήματος','secure-form-vault'); ?></h2><?php
-$print_items=array();$order_total_item=null;$privacy_position=null;
+$print_items=array();$order_total_item=null;$privacy_item=null;$privacy_position=null;
 foreach($payload as $key=>$item){
     $safe_item=is_array($item)?$item:array('label'=>'','value'=>(string)$item);
     $safe_key=sanitize_key((string)$key);
     $raw_label=trim((string)($field_titles[$safe_key]??''));
     if(''===$raw_label){$raw_label=trim((string)($safe_item['label']??''));}
     $raw_value=trim((string)($safe_item['value']??''));
+    $label_probe=$this->xlsx_normalize_text($raw_label);
+    if(str_contains($label_probe,'επιλεξτε προιον')){$raw_label=__('Προϊόν','secure-form-vault');}
+    elseif(str_contains($label_probe,'επιλεξτε νομο')){$raw_label=__('Νομός','secure-form-vault');}
+    elseif(str_contains($label_probe,'επιλεξτε πολη')){$raw_label=__('Πόλη','secure-form-vault');}
     $privacy_probe=$this->xlsx_normalize_text((string)$key.' '.$raw_label.' '.$raw_value);
     $is_privacy=isset($privacy_field_keys[$safe_key])||str_contains($privacy_probe,'πολιτικη απορρητου')||str_contains($privacy_probe,'privacy policy')||str_contains($privacy_probe,'gdpr')||str_contains($privacy_probe,'διαβασα κατανοησα και συμφωνω');
-    if($is_privacy){$privacy_position=count($print_items);continue;}
+    if($is_privacy){$privacy_position=count($print_items);$privacy_item=array('key'=>$key,'item'=>array('label'=>'GDPR','value'=>__('Ναι','secure-form-vault')),'label'=>'GDPR');continue;}
     $canonical=$this->xlsx_canonical_field_key((string)$key,$raw_label);
     if('__order_total'===$canonical){$order_total_item=array('key'=>'__order_total','item'=>$safe_item,'label'=>__('Σύνολο παραγγελίας','secure-form-vault'));continue;}
     $print_items[]=array('key'=>$key,'item'=>$safe_item,'label'=>$raw_label);
 }
-if(!$order_total_item){
+if(empty($summary['is_company'])&&!$order_total_item){
     $quantity_for_pdf=max(0,(float)str_replace(',','.',(string)('—'===$summary['quantity']?0:$summary['quantity'])));
     $calculated_total=$this->order_price_details((int)$row->form_id,(string)('—'===$summary['product']?'':$summary['product']),$quantity_for_pdf);
     if(null!==$calculated_total){$order_total_item=array('key'=>'__order_total','item'=>array('value'=>number_format((float)$calculated_total['total'],2,',','.') . ' €'),'label'=>__('Σύνολο παραγγελίας','secure-form-vault'));}
 }
-if($order_total_item){
+if(empty($summary['is_company'])&&$order_total_item){
     $insert_at=null!==$privacy_position?min($privacy_position,count($print_items)):count($print_items);
     array_splice($print_items,$insert_at,0,array($order_total_item));
 }
 
-// Preserve every other field in its original order and move only the requested
-// six fields to the end: Address | Phone, Email | Preferred date,
-// Quantity | Order total.
-$pdf_tail_order=array('address','phone','email','preferred_date','quantity','order_total');
-$pdf_tail_items=array();
-$pdf_regular_items=array();
-foreach($print_items as $print_item){
+// Business PDFs start with the operational fields in the requested rows:
+// customer type | company | responsible person,
+// VAT | email | phone, product | quantity | delivery date,
+// region | city | address. Remaining fields retain their original order.
+if(!empty($summary['is_company'])){
+    $business_order=array('customer_type','company','responsible','vat','email','phone','product','quantity','delivery_date','region','city','address');
+    $business_items=array();$business_remaining=array();
+    foreach($print_items as $print_item){
+        $item_key=(string)($print_item['key']??'');$item_label=(string)($print_item['label']??'');
+        $stored_label=is_array($print_item['item']??null)?(string)($print_item['item']['label']??''):'';
+        $probe=$this->xlsx_normalize_text($item_key.' '.$item_label.' '.$stored_label);$slot='';
+        if(str_contains($probe,'τυπος πελατη')||str_contains($probe,'customer type')){$slot='customer_type';$print_item['label']=__('Τύπος Πελάτη','secure-form-vault');}
+        elseif(str_contains($probe,'επωνυμια')||str_contains($probe,'company name')||str_contains($probe,'business name')){$slot='company';$print_item['label']=__('Επωνυμία','secure-form-vault');}
+        elseif(str_contains($probe,'υπευθυν')||str_contains($probe,'responsible')||str_contains($probe,'contact person')){$slot='responsible';$print_item['label']=__('Ονοματεπώνυμο Υπευθύνου','secure-form-vault');}
+        elseif(str_contains($probe,'αφμ')||str_contains($probe,'vat')||str_contains($probe,'tax id')){$slot='vat';$print_item['label']=__('ΑΦΜ','secure-form-vault');}
+        elseif(str_contains($probe,'email')||str_contains($probe,'e mail')){$slot='email';$print_item['label']=__('Email','secure-form-vault');}
+        elseif(str_contains($probe,'τηλεφων')||str_contains($probe,'phone')||str_contains($probe,'mobile')){$slot='phone';$print_item['label']=__('Τηλέφωνο','secure-form-vault');}
+        elseif(str_contains($probe,'προιον')||str_contains($probe,'product')||str_contains($probe,'fuel')){$slot='product';$print_item['label']=__('Προϊόν','secure-form-vault');}
+        elseif(str_contains($probe,'ποσοτητα')||str_contains($probe,'quantity')||str_contains($probe,'λιτρα')){$slot='quantity';$print_item['label']=__('Ποσότητα','secure-form-vault');}
+        elseif(str_contains($probe,'deliverydate')||str_contains($probe,'ημ/νια παραδοσης')||str_contains($probe,'ημερομηνια παραδοσης')||str_contains($probe,'επιθυμητη ημερομηνια')||str_contains($probe,'delivery date')){$slot='delivery_date';$print_item['label']=__('Ημερομηνία Παράδοσης','secure-form-vault');}
+        elseif(str_contains($probe,'νομος')||str_contains($probe,'region')){$slot='region';$print_item['label']=__('Νομός','secure-form-vault');}
+        elseif(str_contains($probe,'πολη')||str_contains($probe,'city')){$slot='city';$print_item['label']=__('Πόλη','secure-form-vault');}
+        elseif(str_contains($probe,'διευθυν')||str_contains($probe,'address')||str_contains($probe,'street')){$slot='address';$print_item['label']=__('Διεύθυνση','secure-form-vault');}
+        if(''!==$slot){
+            $print_item['pdf_slot']=$slot;
+            $new_value=trim((string)($print_item['item']['value']??''));
+            $current_value=isset($business_items[$slot])?trim((string)($business_items[$slot]['item']['value']??'')):'';
+            if(!isset($business_items[$slot])||(''===$current_value&&''!==$new_value)){$business_items[$slot]=$print_item;}
+            continue;
+        }
+        $business_remaining[]=$print_item;
+    }
+    $print_items=array();
+    foreach($business_order as $slot){if(isset($business_items[$slot])){$print_items[]=$business_items[$slot];}}
+    $print_items=array_merge($print_items,$business_remaining);
+}
+
+// Residential PDFs use a stable two-column operational layout:
+// customer type | name, VAT | meter, phone | address,
+// fuel quantity | total, delivery date | email, message | GDPR.
+if(empty($summary['is_company'])){
+    if($privacy_item){$print_items[]=$privacy_item;}
+    $residential_order=array('customer_type','name','vat','meter','phone','address','quantity','order_total','delivery_date','email','message','gdpr');
+    $residential_items=array();$residential_remaining=array();
+    foreach($print_items as $print_item){
     $item_key=(string)($print_item['key']??'');
     $item_label=(string)($print_item['label']??'');
-    $probe=$this->xlsx_normalize_text($item_key.' '.$item_label);
+    $stored_label=is_array($print_item['item']??null)?(string)($print_item['item']['label']??''):'';
+    $probe=$this->xlsx_normalize_text($item_key.' '.$item_label.' '.$stored_label);
     $canonical=$this->xlsx_canonical_field_key($item_key,$item_label);
     $slot='';
-    if('__order_total'===$canonical||'__order_total'===$item_key){
-        $slot='order_total';
-    }elseif('__quantity'===$canonical||str_contains($probe,'ποσοτητα')||str_contains($probe,'quantity')||str_contains($probe,'λιτρα')||str_contains($probe,'litres')||str_contains($probe,'liters')){
-        $slot='quantity';
-    }elseif(str_contains($probe,'επιθυμητη ημερομηνια')||str_contains($probe,'preferred date')||str_contains($probe,'delivery date')||str_contains($probe,'ημερομηνια παραδοσης')){
-        $slot='preferred_date';
-    }elseif(str_contains($probe,'email')||str_contains($probe,'e mail')||str_contains($probe,'ηλεκτρονικο ταχυδρομειο')){
-        $slot='email';
-    }elseif(str_contains($probe,'τηλεφων')||str_contains($probe,'phone')||str_contains($probe,'mobile')||str_contains($probe,'κινητο')){
-        $slot='phone';
-    }elseif(str_contains($probe,'διευθυν')||str_contains($probe,'address')||str_contains($probe,'οδος')||str_contains($probe,'street')){
-        $slot='address';
+    if(str_contains($probe,'τυπος πελατη')||str_contains($probe,'customer type')){$slot='customer_type';$print_item['label']=__('Τύπος Πελάτη','secure-form-vault');}
+    elseif(str_contains($probe,'ονοματεπωνυμο')&&!str_contains($probe,'υπευθυν')&&!str_contains($probe,'εκπροσωπ')){$slot='name';$print_item['label']=__('Ονοματεπώνυμο','secure-form-vault');}
+    elseif(str_contains($probe,'αφμ')||str_contains($probe,'vat')||str_contains($probe,'tax id')){$slot='vat';$print_item['label']=__('ΑΦΜ','secure-form-vault');}
+    elseif(str_contains($probe,'μετρητη δεδδηε')||str_contains($probe,'deddie')||str_contains($probe,'meter')){$slot='meter';$print_item['label']=__('Αριθμός Μετρητή ΔΕΔΔΗΕ','secure-form-vault');}
+    elseif(str_contains($probe,'τηλεφων')||str_contains($probe,'phone')||str_contains($probe,'mobile')){$slot='phone';$print_item['label']=__('Τηλέφωνο','secure-form-vault');}
+    elseif(str_contains($probe,'διευθυν')||str_contains($probe,'address')||str_contains($probe,'οδος')||str_contains($probe,'street')){$slot='address';$print_item['label']=__('Διεύθυνση','secure-form-vault');}
+    elseif('__order_total'===$canonical||'__order_total'===$item_key){$slot='order_total';$print_item['label']=__('Σύνολο Παραγγελίας','secure-form-vault');}
+    elseif('__quantity'===$canonical||str_contains($probe,'ποσοτητα')||str_contains($probe,'quantity')||str_contains($probe,'λιτρα')||str_contains($probe,'litres')||str_contains($probe,'liters')){
+        $slot='quantity';$print_item['label']=__('Ποσότητα Πετρελαίου','secure-form-vault');
+    }elseif(str_contains($probe,'deliverydate')||str_contains($probe,'ημ/νια παραδοσης')||str_contains($probe,'ημερομηνια παραδοσης')||str_contains($probe,'επιθυμητη ημερομηνια')||str_contains($probe,'delivery date')){$slot='delivery_date';$print_item['label']=__('Ημερομηνία Παράδοσης','secure-form-vault');}
+    elseif(str_contains($probe,'email')||str_contains($probe,'e mail')||str_contains($probe,'ηλεκτρονικο ταχυδρομειο')){$slot='email';$print_item['label']=__('Email','secure-form-vault');}
+    elseif(str_contains($probe,'μηνυμα')||str_contains($probe,'message')||str_contains($probe,'comments')){$slot='message';$print_item['label']=__('Μήνυμα','secure-form-vault');}
+    elseif('gdpr'===$item_key||str_contains($probe,'gdpr')||str_contains($probe,'πολιτικη απορρητου')){$slot='gdpr';$print_item['label']='GDPR';}
+    if(''!==$slot){
+        $print_item['pdf_slot']=$slot;
+        $new_value=trim((string)($print_item['item']['value']??''));
+        $current_value=isset($residential_items[$slot])?trim((string)($residential_items[$slot]['item']['value']??'')):'';
+        if(!isset($residential_items[$slot])||(''===$current_value&&''!==$new_value)){$residential_items[$slot]=$print_item;}
+        continue;
     }
-    if(''!==$slot&&!isset($pdf_tail_items[$slot])){
-        $pdf_tail_items[$slot]=$print_item;
-    }else{
-        $pdf_regular_items[]=$print_item;
+    $residential_remaining[]=$print_item;
     }
+    $print_items=array();
+    foreach($residential_order as $slot){if(isset($residential_items[$slot])){$print_items[]=$residential_items[$slot];}}
+    $print_items=array_merge($print_items,$residential_remaining);
 }
-$print_items=$pdf_regular_items;
-foreach($pdf_tail_order as $slot){
-    if(isset($pdf_tail_items[$slot])){$print_items[]=$pdf_tail_items[$slot];}
-}
-?><dl class="answers"><?php foreach($print_items as $print_item):$key=$print_item['key'];$item=$print_item['item'];$label=trim((string)$print_item['label']);$value=trim((string)($item['value']??''));if(''===$value)continue;if(''===$label){$label=(string)$key;}
+?><dl class="answers<?php echo !empty($summary['is_company'])?' is-company':''; ?>"><?php foreach($print_items as $print_item):$key=$print_item['key'];$item=$print_item['item'];$label=trim((string)$print_item['label']);$value=trim((string)($item['value']??''));if(''===$value)continue;if(''===$label){$label=(string)$key;}
 $display_probe=$this->xlsx_normalize_text((string)$key.' '.$label);
 // All dates in the PDF use the unambiguous Greek format dd/mm/yyyy.
 if(preg_match('/^\d{4}-\d{2}-\d{2}$/',$value)){$date_object=DateTimeImmutable::createFromFormat('!Y-m-d',$value);if($date_object){$value=$date_object->format('d/m/Y');}}
@@ -2984,24 +3905,31 @@ if('__order_total'===(string)$key||str_contains($display_probe,'συνολο')||
         if(is_numeric($money_text)){$value=number_format((float)$money_text,2,',','.') . ' €';}
     }
 }
-$full=strlen($value)>85||str_contains($value,"\n");?><div class="answer<?php echo $full?' full':''; ?>"><dt><?php echo esc_html($label); ?></dt><dd><?php echo nl2br(esc_html($value)); ?></dd></div><?php endforeach; ?></dl>
+$residential_slot=empty($summary['is_company'])&&in_array((string)($print_item['pdf_slot']??''),array('customer_type','name','vat','meter','phone','address','quantity','order_total','delivery_date','email','message','gdpr'),true);$full=!$residential_slot&&(strlen($value)>85||str_contains($value,"\n"));$third=!empty($summary['is_company'])&&in_array((string)($print_item['pdf_slot']??''),array('customer_type','company','responsible','vat','email','phone','product','quantity','delivery_date','region','city','address'),true);?><div class="answer<?php echo $full?' full':''; ?><?php echo $third?' business-third':''; ?>"><dt><?php echo esc_html($label); ?></dt><dd><?php echo nl2br(esc_html($value)); ?></dd></div><?php endforeach; ?></dl>
 <footer class="footer"><span><?php echo esc_html(sprintf(__('%1$s · Δημιουργήθηκε με GRFuel Manager','secure-form-vault'),$pdf_brand)); ?></span></footer></section>
 <?php endforeach; ?></main><script>window.addEventListener('load',function(){var run=function(){setTimeout(function(){window.print()},120)};if(document.fonts&&document.fonts.ready){document.fonts.ready.then(run).catch(run);}else{run();}});</script></body></html><?php exit;
     }
 
     public function delete_submission(): void {
-        if ( ! current_user_can( self::CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
-        $id = absint( $_GET['id'] ?? 0 );
+        $this->require_post_request();
+        if ( ! current_user_can( self::ADMIN_CAPABILITY ) ) {
+            wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) );
+        }
+        $id = absint( $_POST['id'] ?? 0 );
         check_admin_referer( 'sfv_delete_' . $id );
+        if ( ! $id ) {
+            wp_die( esc_html__( 'Invalid submission.', 'secure-form-vault' ) );
+        }
         global $wpdb;
-        $result = $id ? $wpdb->delete( $this->table(), array( 'id' => $id ), array( '%d' ) ) : false;
-        $status = $result ? 'deleted' : 'maintenance_error';
-        wp_safe_redirect( add_query_arg( 'sfv_status', $status, wp_get_referer() ?: admin_url( 'admin.php?page=sfv-submissions' ) ) );
+        $deleted = $wpdb->delete( $this->table(), array( 'id' => $id ), array( '%d' ) );
+        $status = 1 === $deleted ? 'deleted' : 'not_found';
+        wp_safe_redirect( add_query_arg( 'sfv_status', $status, admin_url( 'admin.php?page=sfv-submissions' ) ) );
         exit;
     }
 
     public function clear_submissions(): void {
-        if ( ! current_user_can( self::CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
+        $this->require_post_request();
+        if ( ! current_user_can( self::ADMIN_CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
         check_admin_referer( 'sfv_clear_submissions' );
         global $wpdb;
         $result = $wpdb->query( "DELETE FROM {$this->table()}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -3011,7 +3939,8 @@ $full=strlen($value)>85||str_contains($value,"\n");?><div class="answer<?php ech
     }
 
     public function reset_submission_id(): void {
-        if ( ! current_user_can( self::CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
+        $this->require_post_request();
+        if ( ! current_user_can( self::ADMIN_CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
         check_admin_referer( 'sfv_reset_submission_id' );
         global $wpdb;
         $count = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$this->table()}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -3026,6 +3955,7 @@ $full=strlen($value)>85||str_contains($value,"\n");?><div class="answer<?php ech
     }
 
     public function export_submissions(): void {
+        $this->require_post_request();
         if ( ! current_user_can( self::CAPABILITY ) ) { wp_die( esc_html__( 'Δεν επιτρέπεται η πρόσβαση.', 'secure-form-vault' ) ); }
         check_admin_referer( 'sfv_export' );
         global $wpdb;
@@ -3052,9 +3982,12 @@ $full=strlen($value)>85||str_contains($value,"\n");?><div class="answer<?php ech
     }
 
     private function export_headers( string $type, string $ext ): void {
-        nocache_headers();
+        $this->send_private_response_headers();
         $site_title = html_entity_decode( wp_strip_all_tags( (string) get_bloginfo( 'name' ) ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
-        $site_title = preg_replace( '/[\\\/:*?"<>|]+/u', '', $site_title ) ?? '';
+        // Remove characters forbidden in download filenames without a regular
+        // expression: an escaped slash inside the old character class could be
+        // interpreted as the pattern delimiter on some PHP/PCRE combinations.
+        $site_title = str_replace( array( '\\', '/', ':', '*', '?', '"', '<', '>', '|' ), '', $site_title );
         $site_title = preg_replace( '/\s+/u', '-', trim( $site_title ) ) ?? '';
         if ( '' === $site_title ) $site_title = 'GRFuel';
         $filename = $site_title . '-Παραγγελίες-' . current_time( 'dmy' ) . '.' . $ext;
@@ -3160,7 +4093,7 @@ $full=strlen($value)>85||str_contains($value,"\n");?><div class="answer<?php ech
             }
             if ( empty( $values['__order_total'] ) ) {
                 $quantity_number = max( 0, (float) str_replace( ',', '.', (string) ( '—' === $summary['quantity'] ? 0 : $summary['quantity'] ) ) );
-                $price_details = $this->order_price_details( $form_id, (string) ( '—' === $summary['product'] ? '' : $summary['product'] ), $quantity_number );
+                $price_details = $this->order_price_details( $form_id, $resolved_product, $quantity_number );
                 if ( null !== $price_details ) {
                     $values['__order_total'] = number_format( (float) $price_details['total'], 2, '.', '' ) . ' €';
                 }
@@ -3393,11 +4326,29 @@ $full=strlen($value)>85||str_contains($value,"\n");?><div class="answer<?php ech
         $value = html_entity_decode( wp_strip_all_tags( $value ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
         $value = remove_accents( $value );
         $value = function_exists( 'mb_strtolower' ) ? mb_strtolower( $value, 'UTF-8' ) : strtolower( $value );
+        // WordPress remove_accents() does not consistently fold Greek tonos and
+        // dialytika. Normalize them explicitly so business/customer labels and
+        // values compare identically across hosts and PHP builds.
+        $value = strtr( $value, array(
+            'ά' => 'α', 'έ' => 'ε', 'ή' => 'η', 'ί' => 'ι', 'ϊ' => 'ι', 'ΐ' => 'ι',
+            'ό' => 'ο', 'ύ' => 'υ', 'ϋ' => 'υ', 'ΰ' => 'υ', 'ώ' => 'ω',
+        ) );
         $value = preg_replace( '/[^\p{L}\p{N}_]+/u', ' ', $value ) ?? '';
         return trim( preg_replace( '/\s+/u', ' ', $value ) ?? '' );
     }
 
     private function xlsx_resolve_product( array $payload, int $form_id ): string {
+        // The submitted order value is authoritative. A form may contain both a
+        // business product dropdown and a residential single-product calculator;
+        // the fixed calculator label must never overwrite the selected dropdown.
+        foreach ( $payload as $payload_key => $item ) {
+            if ( ! is_array( $item ) ) continue;
+            $label = (string) ( $item['label'] ?? '' );
+            $canonical = $this->xlsx_canonical_field_key( (string) $payload_key, $label );
+            $value = trim( (string) ( $item['value'] ?? '' ) );
+            if ( '__product_order' === $canonical && '' !== $value ) return $value;
+        }
+
         $fields = $form_id > 0 ? get_post_meta( $form_id, '_sfv_fields', true ) : array();
         $fields = is_array( $fields ) ? $fields : array();
         $known_products = array();
@@ -3443,14 +4394,6 @@ $full=strlen($value)>85||str_contains($value,"\n");?><div class="answer<?php ech
                     }
                 }
             }
-        }
-
-        // Prefer any submitted field whose key/label clearly denotes a product.
-        foreach ( $payload as $payload_key => $item ) {
-            $label = (string) ( $item['label'] ?? '' );
-            $canonical = $this->xlsx_canonical_field_key( (string) $payload_key, $label );
-            $value = trim( (string) ( $item['value'] ?? '' ) );
-            if ( '__product_order' === $canonical && '' !== $value ) return $value;
         }
 
         // Compatibility with older submissions/forms: match the submitted value

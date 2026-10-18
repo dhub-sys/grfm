@@ -89,19 +89,23 @@
     const host = ensureToastHost();
     const toast = document.createElement('article');
     toast.className = 'grfuel-order-toast';
-    const customer = order?.customer || 'Νέος πελάτης';
-    const product = order?.product || 'Νέα παραγγελία';
-    const quantity = order?.quantity ? ` · ${order.quantity} lt` : '';
+    const customer = String(order?.customer || 'Νέος πελάτης');
+    const product = String(order?.product || 'Νέα παραγγελία');
+    const quantity = order?.quantity ? ` · ${String(order.quantity)} lt` : '';
     toast.innerHTML = `
       <button type="button" class="grfuel-toast-close" aria-label="Κλείσιμο">×</button>
       <div class="grfuel-toast-icon">🔔</div>
       <div class="grfuel-toast-copy">
         <small>GRFuel Manager</small>
-        <strong>${count === 1 ? 'Νέα παραγγελία' : `${count} νέες παραγγελίες`}</strong>
-        <span>${customer}</span>
-        <p>${product}${quantity}</p>
-        <a href="${grfuelNotify.ordersUrl}">Άνοιγμα παραγγελιών</a>
+        <strong></strong>
+        <span></span>
+        <p></p>
+        <a>Άνοιγμα παραγγελιών</a>
       </div>`;
+    toast.querySelector('.grfuel-toast-copy strong').textContent = count === 1 ? 'Νέα παραγγελία' : `${Number(count)} νέες παραγγελίες`;
+    toast.querySelector('.grfuel-toast-copy span').textContent = customer;
+    toast.querySelector('.grfuel-toast-copy p').textContent = product + quantity;
+    toast.querySelector('.grfuel-toast-copy a').href = String(grfuelNotify.ordersUrl || '');
     toast.querySelector('.grfuel-toast-close')?.addEventListener('click', () => toast.remove());
     host.prepend(toast);
     window.setTimeout(() => toast.classList.add('is-visible'), 30);

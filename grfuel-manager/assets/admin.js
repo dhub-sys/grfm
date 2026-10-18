@@ -375,6 +375,79 @@
 })();
 
 (() => {
+  const boot = () => {
+    const button = document.querySelector('.grfuel-session-refresh');
+    const toast = document.querySelector('.grfuel-session-toast');
+    const countdown = button?.querySelector('.grfuel-session-countdown');
+    if (!button || !toast) return;
+    let timer;
+    let expires = Number(button.dataset.expires || 0);
+    const tick = () => {
+      if (!countdown || !expires) return;
+      const remaining = Math.max(0, expires - Math.floor(Date.now() / 1000));
+      const hours = Math.floor(remaining / 3600);
+      const minutes = Math.floor((remaining % 3600) / 60);
+      const seconds = remaining % 60;
+      countdown.textContent = [hours, minutes, seconds].map(value => String(value).padStart(2, '0')).join(':');
+      button.setAttribute('aria-label', `Ανανέωση διάρκειας συνεδρίας. Απομένουν ${countdown.textContent}`);
+      if (remaining === 0) {
+        button.disabled = true;
+        window.top.location.href = button.dataset.loginUrl || window.location.href;
+      }
+    };
+    tick();
+    window.setInterval(tick, 1000);
+    const show = (message, error = false) => {
+      toast.textContent = message;
+      toast.classList.toggle('is-error', error);
+      toast.classList.add('is-visible');
+      clearTimeout(timer);
+      timer = setTimeout(() => toast.classList.remove('is-visible'), 4200);
+    };
+    button.addEventListener('click', async () => {
+      button.disabled = true;
+      button.classList.add('is-loading');
+      try {
+        const body = new URLSearchParams({ action: 'grfuel_refresh_manager_session', nonce: button.dataset.nonce || '' });
+        const response = await fetch(button.dataset.url || '', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' }, body });
+        const data = await response.json();
+        if (!response.ok || !data.success) throw new Error(data?.data?.message || 'Η ανανέωση δεν ολοκληρώθηκε.');
+        expires = Number(data?.data?.expires || expires);
+        button.dataset.expires = String(expires);
+        tick();
+        show(data.data.message || 'Η συνεδρία ανανεώθηκε.');
+      } catch (error) { show(error.message || 'Η ανανέωση δεν ολοκληρώθηκε.', true); }
+      finally { button.disabled = false; button.classList.remove('is-loading'); }
+    });
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot, { once: true }); else boot();
+})();
+
+/* GRFuel Manager 4.3.18 — submit destructive row actions with POST. */
+(() => {
+  document.addEventListener('click', event => {
+    const link = event.target.closest?.('a.sfv-delete-link');
+    if (!link) return;
+    event.preventDefault();
+    const url = new URL(link.href, window.location.href);
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = url.origin + url.pathname;
+    ['action', 'id', '_wpnonce'].forEach(name => {
+      const value = url.searchParams.get(name);
+      if (!value) return;
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name;
+      input.value = value;
+      form.appendChild(input);
+    });
+    document.body.appendChild(form);
+    form.submit();
+  });
+})();
+
+(() => {
   const page = document.querySelector('.sfv-settings-page');
   if (!page) return;
   const tabs = [...page.querySelectorAll('[data-settings-tab]')];

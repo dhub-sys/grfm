@@ -1,0 +1,1536 @@
+#sfv-builder{--sfv-blue:#2271b1;--sfv-border:#dcdcde;--sfv-bg:#f6f7f7;--sfv-text:#1d2327}.sfv-builder-toolbar{display:flex;align-items:center;justify-content:space-between;margin:14px 0;padding:14px 16px;background:linear-gradient(135deg,#fff,#f0f6fc);border:1px solid #c5d9ed;border-radius:8px}.sfv-builder-toolbar div{display:flex;flex-direction:column;gap:3px}.sfv-builder-toolbar strong{font-size:15px}.sfv-builder-toolbar span{color:#646970}.sfv-count{padding:5px 10px;background:#fff;border:1px solid #c5d9ed;border-radius:999px;font-weight:600}.sfv-builder-layout{display:grid;grid-template-columns:230px minmax(0,1fr);gap:20px;align-items:start}.sfv-palette{position:sticky;top:46px;padding:16px;background:#fff;border:1px solid var(--sfv-border);border-radius:8px;box-shadow:0 1px 2px rgba(0,0,0,.04)}.sfv-palette h3,.sfv-canvas-heading h3{margin:0}.sfv-palette>.description{margin:5px 0 15px}.sfv-palette-group+ .sfv-palette-group{margin-top:18px;padding-top:15px;border-top:1px solid #eee}.sfv-palette-group h4{margin:0 0 8px;color:#50575e;text-transform:none;font-size:11px;letter-spacing:.06em}.sfv-palette-item{display:grid;grid-template-columns:30px 1fr;align-items:center;gap:0 10px;width:100%;margin:0 0 7px;padding:9px 10px;background:#fff;border:1px solid #c3c4c7;border-radius:6px;text-align:left;cursor:default;transition:.15s}.sfv-palette-item:hover,.sfv-palette-item:focus{border-color:var(--sfv-blue);box-shadow:0 0 0 1px var(--sfv-blue);outline:none;transform:translateY(-1px)}.sfv-palette-item:disabled{opacity:.5;cursor:default;transform:none}.sfv-palette-item>span{grid-row:1/3;display:grid;place-items:center;width:28px;height:28px;background:#f0f6fc;border-radius:5px;color:var(--sfv-blue);font-weight:700}.sfv-palette-item small{color:#8c8f94;font-size:10px}.sfv-canvas-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:9px}.sfv-canvas-heading span{color:#646970;font-family:monospace}.sfv-canvas{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px;align-items:start;min-height:260px;padding:16px;background:var(--sfv-bg);border:1px dashed #a7aaad;border-radius:8px;transition:.15s}.sfv-canvas.is-drag-over{border-color:var(--sfv-blue);background:#f0f6fc}.sfv-empty-state{grid-column:1/-1;display:flex;min-height:225px;flex-direction:column;align-items:center;justify-content:center;color:#646970;text-align:center}.sfv-empty-state:before{content:'+';display:grid;place-items:center;width:45px;height:45px;margin-bottom:10px;border:2px dashed #a7aaad;border-radius:50%;font-size:25px}.sfv-empty-state strong{font-size:16px;color:var(--sfv-text);margin-bottom:4px}.sfv-field-card{grid-column:span var(--sfv-span);min-width:0;margin:0;background:#fff;border:1px solid #c3c4c7;border-radius:7px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.04);transition:border-color .15s,box-shadow .15s}.sfv-field-card[open]{grid-column:1/-1;border-color:#8cafd0;box-shadow:0 3px 12px rgba(34,113,177,.12)}.sfv-field-card.is-dragging{opacity:.45}.sfv-field-card.is-drag-over{box-shadow:inset 0 3px 0 var(--sfv-blue)}.sfv-field-card>summary{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:10px 11px;cursor:default;list-style:none;border-bottom:1px solid transparent}.sfv-field-card[open]>summary{background:#f7fbff;border-bottom-color:#dce8f2}.sfv-field-card>summary::-webkit-details-marker{display:none}.sfv-field-drag{padding:2px 4px;color:#8c8f94;font-size:18px;letter-spacing:-4px;cursor:default;min-width:0;flex-direction:column}.sfv-field-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.sfv-field-title small{color:#8c8f94}.sfv-field-width{padding:3px 7px;background:#f0f0f1;border-radius:4px;color:#50575e;font:11px monospace}.sfv-chevron{width:7px;height:7px;border-right:2px solid #646970;border-bottom:2px solid #646970;transform:rotate(45deg);transition:.15s}.sfv-field-card[open] .sfv-chevron{transform:rotate(225deg)}.sfv-field-preview{padding:11px;background:#fff;pointer-events:none}.sfv-field-preview label{display:grid;gap:5px;font-size:11px;font-weight:600;color:#50575e}.sfv-field-preview input:not([type=checkbox]),.sfv-field-preview select,.sfv-field-preview textarea{box-sizing:border-box;width:100%;min-height:34px;border:1px solid #c3c4c7;border-radius:4px;background:#fff;color:#8c8f94}.sfv-field-preview textarea{height:62px;resize:none}.sfv-preview-checkbox{display:flex!important;align-items:center}.sfv-preview-submit{width:100%;min-height:36px;border:0;border-radius:4px;background:var(--sfv-blue);color:#fff}.sfv-preview-turnstile{display:flex;align-items:center;justify-content:space-between;min-height:42px;padding:0 11px;border:1px solid #c3c4c7;border-radius:4px;background:#fafafa}.sfv-preview-turnstile span{font-size:10px;color:#646970}.sfv-preview-turnstile strong{font-size:12px}.sfv-field-card[open]>.sfv-field-preview{display:none}.sfv-field-settings{padding:17px}.sfv-settings-grid{display:grid;grid-template-columns:repeat(3,minmax(140px,1fr));gap:14px}.sfv-settings-grid label{display:grid;gap:5px}.sfv-wide{grid-column:1/-1}.sfv-check{align-content:end;display:flex!important;align-items:center;gap:7px!important;padding-bottom:7px}.sfv-widths,.sfv-deps{display:grid;grid-template-columns:repeat(2,minmax(120px,1fr));gap:12px}.sfv-deps{grid-template-columns:2fr 1fr 2fr}.sfv-field-actions{margin-top:14px;padding-top:12px;border-top:1px solid #eee}.sfv-settings-grid fieldset{margin:0;padding:12px;border:1px solid var(--sfv-border);border-radius:5px}.sfv-settings-grid legend{padding:0 5px;font-weight:600}@media(max-width:1100px){.sfv-builder-layout{grid-template-columns:190px minmax(0,1fr)}.sfv-settings-grid{grid-template-columns:repeat(2,1fr)}.sfv-deps{grid-template-columns:1fr 1fr}.sfv-deps label:last-child{grid-column:1/-1}}@media(max-width:782px){.sfv-builder-layout{grid-template-columns:1fr}.sfv-palette{position:static}.sfv-palette-group{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.sfv-palette-group h4{grid-column:1/-1}.sfv-palette-item{margin:0}.sfv-canvas{grid-template-columns:1fr}.sfv-field-card{grid-column:1!important}.sfv-settings-grid,.sfv-widths,.sfv-deps{grid-template-columns:1fr}.sfv-deps label:last-child{grid-column:auto}.sfv-field-width{display:none}.sfv-builder-toolbar{align-items:flex-start;gap:10px}.sfv-count{white-space:nowrap}}
+
+/* Modern plugin admin pages */
+.sfv-admin-page{max-width:1440px;margin:24px 24px 0 4px;color:#172033}.sfv-admin-page *{box-sizing:border-box}.sfv-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:24px;margin-bottom:24px;padding:28px 30px;border:1px solid #e5e9f2;border-radius:20px;background:linear-gradient(135deg,#fff 0%,#f5f7ff 100%);box-shadow:0 12px 35px rgba(32,45,80,.06)}.sfv-page-header h1{margin:5px 0 7px!important;font-size:30px!important;line-height:1.15!important;font-weight:750!important;color:#121a2c}.sfv-page-header p{margin:0;color:#65708a;font-size:14px}.sfv-eyebrow{color:#635bff;font-size:11px;font-weight:800;letter-spacing:.13em}.sfv-header-actions{display:flex;gap:10px;flex-wrap:wrap}.sfv-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:42px;padding:9px 16px;border:1px solid transparent;border-radius:11px;text-decoration:none!important;font-size:13px;font-weight:700;cursor:default;transition:.18s ease}.sfv-btn .dashicons{width:17px;height:17px;font-size:17px}.sfv-btn-primary{background:#635bff;color:#fff;border-color:#635bff;box-shadow:0 7px 16px rgba(99,91,255,.22)}.sfv-btn-primary:hover,.sfv-btn-primary:focus{background:#5148ed;color:#fff;transform:translateY(-1px)}.sfv-btn-secondary{background:#fff;color:#26324d;border-color:#dfe4ee}.sfv-btn-secondary:hover,.sfv-btn-secondary:focus{background:#f7f8fc;color:#121a2c;border-color:#cfd6e4}.sfv-btn-block{width:100%;margin-top:4px}.sfv-stats-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px;margin-bottom:20px}.sfv-stat-card{display:flex;align-items:center;gap:15px;padding:20px;border:1px solid #e5e9f2;border-radius:16px;background:#fff;box-shadow:0 7px 22px rgba(32,45,80,.045)}.sfv-stat-card>.dashicons{display:grid;place-items:center;width:44px;height:44px;border-radius:13px;background:#f0efff;color:#635bff;font-size:22px}.sfv-stat-card strong{display:block;color:#151d30;font-size:24px;line-height:1.05}.sfv-stat-card small{display:block;margin-top:5px;color:#778198;font-size:12px}.sfv-submissions-layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:20px;align-items:start}.sfv-panel{border:1px solid #e5e9f2;border-radius:18px;background:#fff;box-shadow:0 8px 28px rgba(32,45,80,.05);overflow:hidden}.sfv-panel-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;padding:22px 24px;border-bottom:1px solid #edf0f5}.sfv-panel-heading h2,.sfv-export-card h2{margin:0 0 5px;color:#151d30;font-size:18px}.sfv-panel-heading p,.sfv-export-card>p{margin:0;color:#7a8499}.sfv-list-heading{align-items:center}.sfv-filter-form{display:flex;align-items:center;gap:8px}.sfv-admin-page select,.sfv-admin-page input[type=date],.sfv-admin-page input[type=number],.sfv-admin-page input[type=text],.sfv-admin-page input[type=password]{width:100%;min-height:42px;padding:8px 11px;border:1px solid #dfe4ed!important;border-radius:10px!important;background:#fff!important;box-shadow:none!important;color:#202a40}.sfv-admin-page select:focus,.sfv-admin-page input:focus{border-color:#635bff!important;box-shadow:0 0 0 3px rgba(99,91,255,.12)!important}.sfv-filter-form select{min-width:190px}.sfv-submission-list{padding:12px}.sfv-submission-card{margin-bottom:10px;padding:17px 18px;border:1px solid #e8ebf2;border-radius:14px;background:#fff;transition:.18s ease}.sfv-submission-card:hover{border-color:#d6dcE8;box-shadow:0 8px 22px rgba(32,45,80,.06);transform:translateY(-1px)}.sfv-submission-meta{display:flex;align-items:center;gap:12px}.sfv-submission-meta h3{margin:0 0 3px;font-size:14px}.sfv-submission-meta time{color:#8a93a6;font-size:11px}.sfv-id-badge{display:inline-flex;align-items:center;justify-content:center;min-width:48px;padding:7px 8px;border-radius:9px;background:#f2f3f8;color:#5c667c;font-size:11px;font-weight:800}.sfv-delete-link{margin-left:auto;color:#a4aabd}.sfv-delete-link:hover{color:#d63638}.sfv-submission-data{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 18px;margin-top:14px;padding-top:13px;border-top:1px solid #f0f2f6}.sfv-submission-data div{min-width:0}.sfv-submission-data small{display:block;margin-bottom:3px;color:#929bad;font-size:10px;font-weight:800;text-transform:none;letter-spacing:.05em}.sfv-submission-data span{display:block;overflow-wrap:anywhere;color:#333d53;font-size:13px}.sfv-empty-submissions{text-align:center;padding:70px 20px;color:#7d879b}.sfv-empty-submissions .dashicons{width:46px;height:46px;font-size:46px;color:#c2c8d4}.sfv-empty-submissions h3{margin:15px 0 4px;color:#303a50}.sfv-empty-submissions p{margin:0}.sfv-export-card{position:sticky;top:48px;padding:24px}.sfv-export-icon{display:grid;place-items:center;width:48px;height:48px;margin-bottom:16px;border-radius:14px;background:#635bff;color:#fff}.sfv-export-icon .dashicons{font-size:22px}.sfv-export-card form{display:grid;gap:14px;margin-top:22px}.sfv-export-card label,.sfv-modern-fields label{display:grid;gap:6px}.sfv-export-card label>span,.sfv-modern-fields label>span{font-size:12px;font-weight:750;color:#404a60}.sfv-field-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}.sfv-export-note{display:flex;gap:9px;margin-top:18px;padding:12px;border-radius:11px;background:#f7f8fc;color:#6f798e}.sfv-export-note .dashicons{color:#635bff}.sfv-export-note p{margin:0;font-size:11px;line-height:1.5}.sfv-pagination{display:flex;justify-content:center;gap:5px;padding:16px 20px 22px}.sfv-pagination .page-numbers{display:grid;place-items:center;min-width:34px;height:34px;padding:0 9px;border:1px solid #e0e4ed;border-radius:9px;background:#fff;color:#566078;text-decoration:none}.sfv-pagination .current{border-color:#635bff;background:#635bff;color:#fff}.sfv-settings-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:20px;align-items:start}.sfv-settings-card{padding-bottom:0}.sfv-modern-fields{display:grid;gap:20px;padding:24px}.sfv-modern-fields small{color:#8a93a6}.sfv-small-input{max-width:180px}.sfv-panel-footer{padding:18px 24px;border-top:1px solid #edf0f5;background:#fafbfc}.sfv-status{display:inline-flex;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:800}.sfv-status.is-success{background:#e9f8ef;color:#187a45}.sfv-status.is-warning{background:#fff3d9;color:#9a6611}.sfv-help-card{padding:25px}.sfv-help-card>.dashicons{width:42px;height:42px;font-size:42px;color:#635bff}.sfv-help-card h3{margin:15px 0 8px}.sfv-help-card p{margin:0;color:#748096;line-height:1.6}
+@media(max-width:1100px){.sfv-stats-grid{grid-template-columns:repeat(2,1fr)}.sfv-submissions-layout,.sfv-settings-layout{grid-template-columns:1fr}.sfv-export-card{position:static}.sfv-page-header{align-items:stretch;flex-direction:column}}@media(max-width:700px){.sfv-admin-page{margin-right:12px}.sfv-page-header{padding:22px}.sfv-header-actions,.sfv-filter-form{width:100%;flex-direction:column;align-items:stretch}.sfv-stats-grid{grid-template-columns:1fr}.sfv-list-heading{align-items:stretch;flex-direction:column}.sfv-filter-form select{min-width:0}.sfv-submission-data{grid-template-columns:1fr}.sfv-field-pair{grid-template-columns:1fr}}
+
+/* Modern form editor */
+body.post-type-sfv_form.post-new-php #wpcontent,
+body.post-type-sfv_form.post-php #wpcontent{background:#f5f7fb}
+body.post-type-sfv_form.post-new-php .wrap,
+body.post-type-sfv_form.post-php .wrap{margin:24px 24px 0 4px}
+body.post-type-sfv_form #titlediv #title{min-height:56px;padding:12px 16px;border:1px solid #dfe4ed;border-radius:14px;background:#fff;font-size:24px;font-weight:750;box-shadow:0 8px 25px rgba(32,45,80,.04)}
+body.post-type-sfv_form #titlediv #title:focus{border-color:#635bff;box-shadow:0 0 0 4px rgba(99,91,255,.12)}
+body.post-type-sfv_form #poststuff #post-body.columns-2{margin-right:320px}
+body.post-type-sfv_form #postbox-container-1{width:300px;margin-right:-320px}
+body.post-type-sfv_form #sfv_fields{border:0;background:transparent;box-shadow:none}
+body.post-type-sfv_form #sfv_fields>.postbox-header{display:none}
+body.post-type-sfv_form #sfv_fields>.inside{margin:0;padding:0}
+body.post-type-sfv_form #submitdiv{overflow:hidden;border:1px solid #e5e9f2;border-radius:18px;background:#fff;box-shadow:0 8px 28px rgba(32,45,80,.05)}
+body.post-type-sfv_form #submitdiv .postbox-header{padding:4px 8px;border-bottom:1px solid #edf0f5}
+body.post-type-sfv_form #submitdiv .inside{padding:8px 14px 14px}
+body.post-type-sfv_form #major-publishing-actions{border:0;background:#fafbfc}
+body.post-type-sfv_form #publish{min-height:42px;padding:0 18px;border:0;border-radius:11px;background:#635bff;font-weight:700;box-shadow:0 7px 16px rgba(99,91,255,.22)}
+.sfv-form-hero{display:flex;align-items:center;justify-content:space-between;gap:24px;margin:0 0 18px;padding:25px 27px;border:1px solid #e5e9f2;border-radius:20px;background:linear-gradient(135deg,#fff 0%,#f4f3ff 100%);box-shadow:0 12px 35px rgba(32,45,80,.055)}
+.sfv-form-hero h2{margin:5px 0 7px;font-size:26px;line-height:1.15;color:#121a2c}.sfv-form-hero p{max-width:720px;margin:0;color:#65708a}
+.sfv-shortcode-card{flex:0 0 auto;display:grid;gap:7px;min-width:260px;padding:14px 16px;border:1px solid #deddf7;border-radius:14px;background:rgba(255,255,255,.82)}
+.sfv-shortcode-card span{font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:none;color:#7b769a}.sfv-shortcode-card code{padding:0;background:none;color:#4d46d8;font-size:12px}
+#sfv-builder{--sfv-blue:#635bff;--sfv-border:#e1e5ee;--sfv-bg:#f7f8fc;--sfv-text:#172033}
+.sfv-builder-toolbar{padding:17px 19px;border-color:#e5e9f2;border-radius:16px;background:#fff;box-shadow:0 7px 22px rgba(32,45,80,.045)}
+.sfv-builder-layout{grid-template-columns:245px minmax(0,1fr);gap:18px}.sfv-palette{padding:18px;border-color:#e5e9f2;border-radius:16px;box-shadow:0 8px 25px rgba(32,45,80,.05)}
+.sfv-palette-item{padding:11px;border-color:#e1e5ee;border-radius:11px}.sfv-palette-item>span{width:32px;height:32px;border-radius:9px;background:#f0efff;color:#635bff}
+.sfv-canvas{padding:18px;border-color:#cfd5e1;border-radius:16px;background:#f7f8fc}.sfv-field-card{border-color:#e2e6ee;border-radius:13px;box-shadow:0 5px 16px rgba(32,45,80,.045)}
+.sfv-field-card[open]{border-color:#aaa5ff;box-shadow:0 12px 30px rgba(99,91,255,.12)}.sfv-field-card[open]>summary{background:#f5f4ff;border-bottom-color:#e5e2ff}
+.sfv-field-drag{color:#8b93a5}.sfv-field-width{padding:5px 8px;border-radius:8px;background:#f0efff;color:#5148ed}.sfv-field-settings{padding:21px}.sfv-settings-grid fieldset{border-color:#e3e7ef;border-radius:11px;background:#fbfcfe}
+.sfv-settings-grid input,.sfv-settings-grid select{min-height:40px;border:1px solid #dfe4ed!important;border-radius:9px!important;box-shadow:none!important}.sfv-settings-grid input:focus,.sfv-settings-grid select:focus{border-color:#635bff!important;box-shadow:0 0 0 3px rgba(99,91,255,.11)!important}
+.sfv-settings-sidebar{display:grid;gap:16px}.sfv-mini-card{display:flex;gap:13px;padding:18px}.sfv-mini-card>.dashicons{flex:0 0 auto;display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#f0efff;color:#635bff}.sfv-mini-card strong{display:block;margin-bottom:4px;color:#202a40}.sfv-mini-card p{margin:0;color:#7a8499;font-size:12px;line-height:1.5}
+@media(max-width:1100px){body.post-type-sfv_form #poststuff #post-body.columns-2{margin-right:0}body.post-type-sfv_form #postbox-container-1{float:none;width:100%;margin:18px 0 0}.sfv-form-hero{align-items:stretch;flex-direction:column}.sfv-shortcode-card{min-width:0}}
+
+/* Compact Dazzlink admin system */
+.sfv-admin-page{max-width:1320px;margin-top:16px}.sfv-compact-nav{display:flex;align-items:center;gap:5px;margin:0 0 14px;padding:7px;border:1px solid #e2e7f0;border-radius:14px;background:#fff;box-shadow:0 6px 20px rgba(28,39,67,.05)}.sfv-compact-nav a{display:inline-flex;align-items:center;gap:7px;min-height:36px;padding:7px 11px;border-radius:9px;color:#556078;text-decoration:none;font-size:12px;font-weight:700}.sfv-compact-nav a:hover{background:#f3f5fb;color:#252d45}.sfv-compact-nav a.is-active{background:#202840;color:#fff}.sfv-compact-nav .dashicons{width:15px;height:15px;font-size:15px}.sfv-nav-brand{margin-left:auto;padding:0 9px;color:#8a93a8;font-size:11px;font-weight:700}.sfv-page-header{margin-bottom:14px;padding:19px 21px;border-radius:14px}.sfv-page-header h1{font-size:24px!important}.sfv-page-header p{font-size:13px}.sfv-page-header-compact{padding-block:17px}.sfv-stats-grid{gap:10px;margin-bottom:12px}.sfv-stat-card{min-height:82px;padding:14px;border-radius:13px}.sfv-panel{border-radius:14px;box-shadow:0 7px 22px rgba(32,45,80,.05)}.sfv-panel-heading{padding:16px 18px}.sfv-submissions-layout,.sfv-settings-layout{gap:14px}.sfv-submission-card{margin:0 14px 10px;padding:14px;border-radius:12px}.sfv-submission-data{gap:8px}.sfv-submission-data>div{padding:9px 10px;border-radius:8px}.sfv-export-card{padding:18px;top:46px}.sfv-btn{min-height:36px;padding:7px 12px;border-radius:9px}.sfv-modern-fields{gap:12px}.sfv-modern-fields input,.sfv-modern-fields select,.sfv-export-card input,.sfv-export-card select{min-height:38px;border-radius:8px}.sfv-form-hero{padding:17px 19px!important;border-radius:13px!important}.sfv-form-hero h2{font-size:21px!important}.sfv-builder-toolbar{margin:10px 0;padding:11px 13px;border-radius:10px}.sfv-builder-layout{grid-template-columns:205px minmax(0,1fr);gap:13px}.sfv-palette{padding:12px;border-radius:11px;top:46px}.sfv-palette-item{margin-bottom:5px;padding:7px 8px;border-radius:8px}.sfv-canvas{gap:9px;min-height:220px;padding:11px;border-radius:11px}.sfv-field-card{border-radius:9px}.sfv-field-card>summary{padding:8px 9px}.sfv-field-preview{padding:9px}.sfv-field-settings{padding:13px}.sfv-settings-grid{gap:10px}.sfv-settings-grid fieldset{padding:9px}.sfv-docs-grid{display:grid;grid-template-columns:210px minmax(0,1fr);gap:14px;align-items:start}.sfv-docs-index{position:sticky;top:46px;display:grid;gap:4px;padding:13px}.sfv-docs-index strong{padding:7px 8px 9px;color:#222b42}.sfv-docs-index a{padding:8px;border-radius:8px;color:#5d667d;text-decoration:none;font-size:12px;font-weight:650}.sfv-docs-index a:hover{background:#f1f3f8;color:#202840}.sfv-docs-content{padding:18px 21px}.sfv-docs-content section+section{margin-top:22px;padding-top:20px;border-top:1px solid #edf0f5}.sfv-docs-content h2{margin:0 0 8px;font-size:18px;color:#202840}.sfv-docs-content p,.sfv-docs-content li{font-size:13px;line-height:1.7;color:#596379}.sfv-docs-content code{padding:2px 5px;border-radius:5px;background:#f1f3f8}.sfv-doc-callout{margin-top:13px;padding:12px 14px;border-left:3px solid #635bff;border-radius:8px;background:#f6f5ff;color:#45415d;font-size:12px;line-height:1.6}@media(max-width:900px){.sfv-compact-nav{overflow-x:auto}.sfv-nav-brand{display:none}.sfv-docs-grid{grid-template-columns:1fr}.sfv-docs-index{position:static;grid-template-columns:repeat(2,1fr)}.sfv-builder-layout{grid-template-columns:1fr}}
+.sfv-inline-nav{margin:14px 20px 0 0}.sfv-inline-nav .sfv-compact-nav{margin-bottom:10px}.post-type-sfv_form .wrap h1.wp-heading-inline{font-weight:750;color:#202840}.post-type-sfv_form .wp-list-table{border:1px solid #e2e7f0;border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(28,39,67,.04)}.post-type-sfv_form .wp-list-table thead th,.post-type-sfv_form .wp-list-table tfoot th{background:#f7f8fb}.post-type-sfv_form #poststuff .postbox{border:1px solid #e2e7f0;border-radius:13px;overflow:hidden;box-shadow:0 7px 22px rgba(32,45,80,.05)}.post-type-sfv_form #poststuff .postbox-header{background:#f8f9fc}.post-type-sfv_form #titlediv #title{border-radius:10px;border-color:#dce1ea;min-height:44px;padding-inline:13px}
+
+/* Dazzlink brand signature */
+.sfv-nav-brand{display:inline-flex;align-items:center;gap:9px;min-height:28px}
+.sfv-nav-brand img{display:block;width:92px;max-height:24px;object-fit:contain;object-position:right center}
+.sfv-nav-brand span{padding-left:8px;border-left:1px solid #e5e8ef;color:#9aa2b4;font-size:10px}
+.sfv-branded-header{display:flex;align-items:center;justify-content:space-between;gap:24px}
+.sfv-dazzlink-signature{display:flex;flex-direction:column;align-items:flex-end;gap:6px;min-width:150px;padding:10px 12px;border:1px solid rgba(99,91,255,.14);border-radius:10px;background:rgba(255,255,255,.62);text-decoration:none}
+.sfv-dazzlink-signature img{display:block;width:122px;max-height:34px;object-fit:contain;object-position:right center}
+.sfv-dazzlink-signature span{color:#7b8396;font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:none}
+@media(max-width:900px){.sfv-branded-header{align-items:flex-start;flex-direction:column}.sfv-dazzlink-signature{align-items:flex-start}.sfv-dazzlink-signature img{object-position:left center}}
+
+/* Dazzlink section identity */
+.sfv-nav-version{margin-left:auto;padding:0 10px;color:#98a1b3;font-size:10px;font-weight:700}
+.sfv-section-intro{display:flex;align-items:center;justify-content:space-between;gap:28px;margin:0 0 14px;padding:18px 22px;border:1px solid #e2e7f0;border-radius:14px;background:linear-gradient(135deg,#fff 0%,#fafbff 100%);box-shadow:0 7px 22px rgba(32,45,80,.05)}
+.sfv-section-copy{min-width:0}.sfv-section-kicker{display:block;margin-bottom:5px;color:#8179ff;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:none}.sfv-section-copy h2{margin:0 0 5px;color:#202840;font-size:18px;line-height:1.25}.sfv-section-copy p{max-width:760px;margin:0;color:#657087;font-size:12.5px;line-height:1.6}
+.sfv-dazzlink-brand{display:flex;flex:0 0 auto;flex-direction:column;align-items:flex-end;gap:5px;min-width:180px;text-decoration:none}.sfv-dazzlink-brand img{display:block;width:154px;max-height:44px;object-fit:contain;object-position:right center}.sfv-dazzlink-brand span{color:#7c8496;font-size:11px;font-weight:650;letter-spacing:0;text-transform:none}
+.sfv-inline-nav .sfv-section-intro{margin-right:0}.sfv-inline-nav{max-width:1320px}
+.sfv-preview-radio{display:grid;gap:5px;margin:0;padding:0;border:0}.sfv-preview-radio legend{margin-bottom:4px;font-weight:650}.sfv-preview-radio label{display:flex;align-items:center;gap:6px;font-size:12px}
+.sfv-radio-group{margin:0;padding:0;border:0}.sfv-radio-options{display:flex;flex-wrap:wrap;gap:10px 18px}.sfv-radio-options label{display:inline-flex;align-items:center;gap:6px}
+.sfv-branded-header .sfv-dazzlink-signature,.sfv-nav-brand{display:none!important}
+@media(max-width:780px){.sfv-section-intro{align-items:flex-start;flex-direction:column}.sfv-dazzlink-brand{align-items:flex-start;min-width:0}.sfv-dazzlink-brand img{object-position:left center}.sfv-nav-version{display:none}}
+
+/* Unified Dazzlink section header — v1.8.1 */
+.sfv-section-intro{align-items:stretch}.sfv-section-main{display:flex;min-width:0;flex:1;flex-direction:column;justify-content:center}.sfv-section-copy h1{margin:3px 0 6px;color:#202840;font-size:24px;line-height:1.18}.sfv-section-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.sfv-section-intro .sfv-dazzlink-brand{align-self:center}.sfv-section-intro.has-actions .sfv-dazzlink-brand{align-self:center}.sfv-section-intro+.sfv-stats-grid{margin-top:0}@media(max-width:780px){.sfv-section-actions{width:100%}.sfv-section-actions .sfv-btn{justify-content:center}.sfv-section-intro .sfv-dazzlink-brand{align-self:flex-start}}
+
+/* v1.8.3 interface refinement */
+.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){max-width:1320px;margin:0 20px 0 2px}
+.post-type-sfv_form .wrap>.wp-heading-inline{margin:16px 0 4px;color:#202840;font-size:24px;font-weight:780;letter-spacing:-.02em}
+.post-type-sfv_form .wrap>.page-title-action{display:inline-flex;align-items:center;min-height:36px;margin:13px 0 4px 10px;padding:6px 13px;border:0;border-radius:9px;background:#635bff;color:#fff;font-weight:700;box-shadow:none}
+.post-type-sfv_form .wrap>.page-title-action:hover{background:#5148ed;color:#fff}
+.post-type-sfv_form .subsubsub{margin:9px 0 12px;padding:5px 8px;border:1px solid #e2e7f0;border-radius:10px;background:#fff}
+.post-type-sfv_form .subsubsub a{display:inline-block;padding:6px 8px;border-radius:7px;color:#667089;text-decoration:none}
+.post-type-sfv_form .subsubsub a.current{background:#f0efff;color:#5148ed;font-weight:750}
+.post-type-sfv_form .tablenav.top{height:auto;margin:0 0 10px;padding:10px;border:1px solid #e2e7f0;border-radius:12px;background:#fff}
+.post-type-sfv_form .tablenav .actions{padding:0}
+.post-type-sfv_form .tablenav select,.post-type-sfv_form .search-box input[type=search]{min-height:36px;border:1px solid #dce1eb;border-radius:8px;background:#fff;box-shadow:none}
+.post-type-sfv_form .tablenav .button,.post-type-sfv_form .search-box .button{min-height:36px;border:1px solid #dce1eb;border-radius:8px;background:#fff;color:#394158;font-weight:650}
+.post-type-sfv_form .wp-list-table{overflow:hidden;border:1px solid #e2e7f0;border-radius:14px;border-spacing:0;background:#fff;box-shadow:0 7px 22px rgba(32,45,80,.05)}
+.post-type-sfv_form .wp-list-table thead th,.post-type-sfv_form .wp-list-table thead td{border-bottom:1px solid #e7eaf1;background:#f8f9fc;color:#657087;font-size:11px;font-weight:800;text-transform:none;letter-spacing:.04em}
+.post-type-sfv_form .wp-list-table tbody td,.post-type-sfv_form .wp-list-table tbody th{padding-top:15px;padding-bottom:15px;border-bottom:1px solid #edf0f5}
+.post-type-sfv_form .wp-list-table tbody tr:hover{background:#fbfbfe}
+.post-type-sfv_form .wp-list-table .row-title{color:#252d45;font-size:14px;font-weight:760}
+.post-type-sfv_form .wp-list-table .row-actions{padding-top:6px;color:#a0a7b7}
+.post-type-sfv_form .wp-list-table .row-actions a{color:#5f6880}
+.post-type-sfv_form .wp-list-table .row-actions .trash a{color:#c33b4a}
+.post-type-sfv_form .column-sfv_shortcode code{display:inline-flex;padding:5px 8px;border-radius:7px;background:#f0efff;color:#5148ed;font-size:11px}
+.post-type-sfv_form #titlediv #title{height:52px;min-height:52px;padding:0 16px!important;border:1px solid #dce1eb;border-radius:11px;background:#fff;color:#202840;font-size:18px;line-height:50px!important;box-shadow:none}
+.post-type-sfv_form #titlediv #title::placeholder{color:#9aa2b4;opacity:1}
+.post-type-sfv_form #titlediv #title:focus{border-color:#635bff;box-shadow:0 0 0 3px rgba(99,91,255,.12)}
+.post-type-sfv_form #titlewrap{margin-top:0}
+.post-type-sfv_form #edit-slug-box{padding-inline:4px}
+.sfv-field-settings{background:#fbfcfe}
+.sfv-settings-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;align-items:start}
+.sfv-settings-grid label{gap:0}
+.sfv-control{position:relative;display:block!important}
+.sfv-control input,.sfv-control select{width:100%;min-height:40px;margin:0!important;padding:7px 11px;border:1px solid #dfe3eb;border-radius:9px;background:#fff;color:#273048;box-shadow:none}
+.sfv-control input::placeholder{color:#929aad;opacity:1}
+.sfv-control input:focus,.sfv-control select:focus{border-color:#635bff;box-shadow:0 0 0 3px rgba(99,91,255,.1);outline:none}
+.sfv-control[data-hint]:has(input:placeholder-shown)::after{content:attr(data-hint);position:absolute;z-index:20;left:8px;bottom:calc(100% + 7px);max-width:250px;padding:7px 9px;border-radius:7px;background:#202840;color:#fff;font-size:11px;line-height:1.35;opacity:0;pointer-events:none;transform:translateY(3px);transition:.14s}
+.sfv-control[data-hint]:has(input:placeholder-shown):hover::after{opacity:1;transform:none}
+.sfv-required-control{position:relative;display:flex!important;align-items:center;gap:9px;min-height:40px;padding:7px 11px;border:1px solid #dfe3eb;border-radius:9px;background:#fff;color:#475069;font-weight:700;cursor:default;opacity:1;pointer-events:auto}
+.sfv-required-box{position:relative;width:18px;height:18px;flex:0 0 18px;border:1.5px solid #b8bfcd;border-radius:5px;background:#fff}
+.sfv-required-control input:checked+.sfv-required-box{border-color:#635bff;background:#635bff}
+.sfv-required-control input:checked+.sfv-required-box::after{content:'';position:absolute;left:5px;top:2px;width:5px;height:9px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.sfv-required-control:focus-within{border-color:#635bff;box-shadow:0 0 0 3px rgba(99,91,255,.1)}
+.sfv-settings-section{padding:10px!important;border:1px solid #e3e7ef!important;border-radius:10px!important;background:#fff!important}
+.sfv-settings-section legend{padding:0 5px;color:#687189;font-size:11px;font-weight:800;text-transform:none;letter-spacing:.04em}
+.sfv-widths,.sfv-deps{gap:8px}
+.sfv-field-actions{margin-top:10px;padding-top:10px}
+@media(max-width:1100px){.sfv-settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:782px){.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){margin-right:10px}.sfv-settings-grid{grid-template-columns:1fr}}
+
+/* v1.8.4 — consistent builder control sizing */
+.sfv-field-settings .sfv-control input[type="text"],
+.sfv-field-settings .sfv-control input[type="email"],
+.sfv-field-settings .sfv-control input[type="number"],
+.sfv-field-settings .sfv-control input[type="tel"],
+.sfv-field-settings .sfv-control select,
+.sfv-field-settings .sfv-settings-grid input[type="text"],
+.sfv-field-settings .sfv-settings-grid input[type="email"],
+.sfv-field-settings .sfv-settings-grid input[type="number"],
+.sfv-field-settings .sfv-settings-grid input[type="tel"],
+.sfv-field-settings .sfv-settings-grid select {
+  box-sizing: border-box;
+  width: 100%;
+  height: 40px !important;
+  min-height: 40px !important;
+  max-height: 40px;
+  margin: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+  line-height: 38px !important;
+  vertical-align: middle;
+}
+.sfv-field-settings .sfv-control select,
+.sfv-field-settings .sfv-settings-grid select {
+  padding-right: 32px !important;
+}
+.sfv-field-settings .sfv-control,
+.sfv-field-settings .sfv-settings-grid > label {
+  min-width: 0;
+  align-self: start;
+}
+.sfv-field-settings .sfv-required-control {
+  min-height: 40px;
+  padding: 0 2px 0 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  gap: 11px !important;
+  font-weight: 700;
+}
+.sfv-field-settings .sfv-required-control:focus-within {
+  border-color: transparent;
+  box-shadow: none;
+}
+.sfv-field-settings .sfv-required-box {
+  margin-right: 2px;
+}
+
+/* v1.8.5 — hide-label setting */
+.sfv-field-settings .sfv-hide-label-control{font-weight:600;color:#59627a}
+.sfv-preview-label-hidden{display:block}
+
+/* v1.9.0 — appearance settings */
+.sfv-style-settings{border-top:1px solid #edf0f5;padding:20px 24px 24px;background:#fbfcfe}
+.sfv-style-heading{margin-bottom:12px}.sfv-style-heading h2{margin:0 0 4px;font-size:17px;color:#202840}.sfv-style-heading p{margin:0;color:#7a8499;font-size:12px}
+.sfv-style-group{margin-top:9px;border:1px solid #e4e8f0;border-radius:11px;background:#fff;overflow:hidden}
+.sfv-style-group summary{display:flex;align-items:center;gap:10px;padding:13px 15px;cursor:default;list-style:none;font-weight:750;color:#293249}.sfv-style-group summary::-webkit-details-marker{display:none}
+.sfv-style-group summary:after{content:'+';margin-left:auto;color:#8992a6;font-size:18px;font-weight:400}.sfv-style-group[open] summary:after{content:'−'}
+.sfv-style-group summary small{color:#8a93a6;font-size:11px;font-weight:400}
+.sfv-style-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:11px;padding:14px 15px 16px;border-top:1px solid #edf0f5}
+.sfv-style-grid label{display:grid;gap:6px}.sfv-style-grid label>span{font-size:11px;font-weight:750;color:#4a546a}
+.sfv-style-grid input,.sfv-style-grid select{width:100%;min-height:38px!important;border-radius:8px!important}
+.sfv-style-grid input[type=color]{height:38px;padding:3px;cursor:default;grid-template-columns:220px minmax(0,1fr) 310px;gap:14px;align-items:start}
+.sfv-settings-nav,.sfv-settings-main,.sfv-settings-workspace{display:grid;grid-template-columns:220px minmax(0,1fr) 310px;gap:14px;align-items:start}
+.sfv-settings-preview-panel{border:1px solid #e3e7ef;border-radius:14px;background:#fff;box-shadow:0 7px 22px rgba(32,45,80,.05)}
+.sfv-settings-nav{position:sticky;top:46px;padding:10px}
+.sfv-settings-nav-title{display:flex;align-items:center;gap:10px;padding:9px 9px 13px;margin-bottom:4px;border-bottom:1px solid #edf0f5}.sfv-settings-nav-title>.dashicons{display:grid;place-items:center;width:34px;height:34px;border-radius:9px;background:#f0efff;color:#635bff}.sfv-settings-nav-title strong,.sfv-settings-nav-title small{display:block}.sfv-settings-nav-title strong{color:#202840;font-size:12px}.sfv-settings-nav-title small{margin-top:2px;color:#9199aa;font-size:10px}
+.sfv-settings-tab{display:flex;align-items:center;gap:9px;width:100%;min-height:41px;margin:3px 0;padding:8px 10px;border:0;border-radius:9px;background:transparent;color:#626c82;text-align:left;font-weight:700;cursor:default;color:#252d45}.sfv-settings-tab.is-active{background:#202840;color:#fff}.sfv-settings-tab>.dashicons{width:17px;height:17px;font-size:17px}.sfv-settings-tab>span:nth-child(2){flex:1}.sfv-status-dot{width:7px;height:7px;border-radius:50%;background:#a7afbf}.sfv-status-dot.is-success{background:#34b36b}.sfv-status-dot.is-warning{background:#e4a52f}.sfv-settings-save-mobile{display:none;margin-top:10px;padding-top:10px;border-top:1px solid #edf0f5}
+.sfv-settings-main{overflow:hidden}.sfv-settings-pane{display:none;min-height:430px;padding:24px}.sfv-settings-pane.is-active{display:block}.sfv-settings-pane-header{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #edf0f5}.sfv-settings-pane-header h2{margin:2px 0 5px;font-size:21px;color:#192238}.sfv-settings-pane-header p{max-width:650px;margin:0;color:#778198;font-size:12px;line-height:1.55}.sfv-settings-kicker{color:#635bff;font-size:10px;font-weight:850;letter-spacing:.11em;text-transform:none}
+.sfv-settings-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}.sfv-settings-form-grid-security{grid-template-columns:repeat(2,minmax(0,1fr))}.sfv-setting-control{display:grid;align-content:start;gap:6px;padding:13px;border:1px solid #e8ebf2;border-radius:11px;background:#fbfcfe;transition:.15s}.sfv-setting-control:hover{border-color:#d7dce7;background:#fff}.sfv-setting-control>span{color:#414b61;font-size:11px;font-weight:800}.sfv-setting-control>small{color:#8a93a6;font-size:10px;line-height:1.45}.sfv-setting-control-wide{grid-column:1/-1}.sfv-setting-control input:not([type=color]),.sfv-setting-control select{height:40px!important;min-height:40px!important;padding:7px 10px!important;border:1px solid #dfe4ed!important;border-radius:8px!important;background:#fff!important;box-shadow:none!important}.sfv-setting-control input:focus,.sfv-setting-control select:focus{border-color:#635bff!important;box-shadow:0 0 0 3px rgba(99,91,255,.1)!important}.sfv-color-control>div{display:flex;align-items:center;gap:9px}.sfv-color-control input[type=color]{flex:0 0 42px;width:42px;height:40px;padding:3px;border:1px solid #dfe4ed;border-radius:8px;background:#fff;cursor:default;font-size:10px;background:transparent}.sfv-unit-input{display:grid;grid-template-columns:1fr 38px;align-items:center}.sfv-unit-input input{border-radius:8px 0 0 8px!important}.sfv-unit-input span{display:grid;place-items:center;height:40px;border:1px solid #dfe4ed;border-left:0;border-radius:0 8px 8px 0;background:#f5f6f9;color:#7b8497;font-size:10px;font-weight:800}
+.sfv-settings-note{display:flex;gap:11px;margin-top:15px;padding:13px 14px;border-radius:11px;background:#f5f4ff;color:#54506d}.sfv-settings-note>.dashicons{color:#635bff}.sfv-settings-note strong{display:block;margin-bottom:3px;color:#393552;font-size:11px}.sfv-settings-note p{margin:0;font-size:10px;line-height:1.55}
+.sfv-settings-footer{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:15px 18px;border-top:1px solid #edf0f5;background:#fafbfc}.sfv-settings-footer strong,.sfv-settings-footer small{display:block}.sfv-settings-footer strong{color:#333d53;font-size:11px}.sfv-settings-footer small{margin-top:3px;color:#8a93a6;font-size:10px}
+.sfv-settings-preview-panel{position:sticky;top:46px;padding:18px}.sfv-settings-preview-heading{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px}.sfv-settings-preview-heading h3{margin:2px 0 0;color:#202840;font-size:15px}.sfv-settings-preview-heading>.dashicons{color:#8b94a8}.sfv-live-preview{padding:17px;border:1px solid #e5e9f1;border-radius:12px;background:linear-gradient(180deg,#fff,#fafbfe)}.sfv-preview-live-label{display:block;margin:0 0 6px;color:var(--sfv-preview-label-color,#202840);font-family:var(--sfv-preview-label-font,inherit);font-size:var(--sfv-preview-label-size,14px);font-weight:var(--sfv-preview-label-weight,600)}.sfv-preview-live-label em{color:#d63638;font-style:normal}.sfv-preview-live-field{box-sizing:border-box;width:100%!important;height:var(--sfv-preview-field-height,44px)!important;margin:0 0 13px!important;padding:9px 11px!important;border:1px solid var(--sfv-preview-field-border,#dfe4ed)!important;border-radius:var(--sfv-preview-field-radius,8px)!important;background:var(--sfv-preview-field-bg,#fff)!important;color:var(--sfv-preview-field-color,#202840)!important;font-family:var(--sfv-preview-field-font,inherit)!important;font-size:var(--sfv-preview-field-size,14px)!important;font-weight:var(--sfv-preview-field-weight,400)!important;opacity:1!important;-webkit-text-fill-color:var(--sfv-preview-field-color,#202840)!important}.sfv-live-preview textarea.sfv-preview-live-field{height:86px!important;resize:none}.sfv-preview-live-field::placeholder{color:var(--sfv-preview-placeholder-color,#8a93a6);font-family:var(--sfv-preview-placeholder-font,inherit);font-size:var(--sfv-preview-placeholder-size,14px);font-weight:var(--sfv-preview-placeholder-weight,400);opacity:1}.sfv-preview-live-submit{width:100%;height:var(--sfv-preview-submit-height,44px);border:0;border-radius:var(--sfv-preview-submit-radius,8px);background:var(--sfv-preview-submit-bg,#635bff);color:var(--sfv-preview-submit-color,#fff);font-family:var(--sfv-preview-submit-font,inherit);font-size:var(--sfv-preview-submit-size,14px);font-weight:var(--sfv-preview-submit-weight,700)}.sfv-preview-caption{margin:11px 2px 0;color:#939bad;font-size:10px;line-height:1.5}
+@media(max-width:1180px){.sfv-settings-workspace{grid-template-columns:200px minmax(0,1fr)}.sfv-settings-preview-panel{grid-column:2;position:static}.sfv-settings-preview-panel .sfv-live-preview{max-width:560px}}
+@media(max-width:850px){.sfv-settings-workspace{grid-template-columns:1fr}.sfv-settings-nav{position:static;display:flex;gap:5px;overflow-x:auto}.sfv-settings-nav-title,.sfv-settings-save-mobile{display:none}.sfv-settings-tab{flex:0 0 auto;width:auto}.sfv-settings-main,.sfv-settings-preview-panel{grid-column:auto}.sfv-settings-form-grid,.sfv-settings-form-grid-security{grid-template-columns:1fr}.sfv-setting-control-wide{grid-column:auto}.sfv-settings-footer>div{display:none}}
+
+/* Content elements */
+.sfv-preview-content-heading{font-size:22px;font-weight:700;line-height:1.2;color:#172033}
+.sfv-preview-content-text{color:#536079;line-height:1.55;white-space:normal}
+.sfv-preview-divider{width:100%;margin:10px 0;border:0;border-top:1px solid #d8deea}
+.sfv-field-settings textarea[data-k="content"]{min-height:110px;height:auto;resize:vertical;padding-top:10px;line-height:1.5}
+.sfv-type-heading summary,.sfv-type-content_text summary,.sfv-type-divider summary{background:linear-gradient(180deg,#fff,#fbfcff)}
+
+
+/* Field interaction state settings */
+.sfv-field-state-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 14px;padding:4px;border:1px solid #e5e9f1;border-radius:10px;background:#f7f8fb}.sfv-field-state-tab{min-height:34px;padding:7px 13px;border:0;border-radius:7px;background:transparent;color:#687188;font-size:12px;font-weight:700;cursor:default;background:#fff}.sfv-field-state-tab.is-active{color:#fff;background:#635bff;box-shadow:0 3px 9px rgba(99,91,255,.22)}.sfv-field-state-panel{display:none;margin-bottom:18px;padding:15px;border:1px solid #e5e9f1;border-radius:11px;background:#fbfcfe}.sfv-field-state-panel.is-active{display:block}.sfv-state-panel-heading{display:flex;flex-direction:column;gap:3px;margin-bottom:12px}.sfv-state-panel-heading strong{color:#252d43;font-size:13px}.sfv-state-panel-heading span{color:#8790a3;font-size:11px;line-height:1.5}.sfv-settings-subsection{padding-top:4px}
+.sfv-preview-live-field{transition:border-color .18s ease,background-color .18s ease,color .18s ease,box-shadow .18s ease}.sfv-preview-live-field:hover,.sfv-preview-live-field.is-preview-hover{color:var(--sfv-preview-field-hover-color,var(--sfv-preview-field-color,#202840))!important;background:var(--sfv-preview-field-hover-bg,var(--sfv-preview-field-bg,#fff))!important;border-color:var(--sfv-preview-field-hover-border,#aeb7c8)!important;-webkit-text-fill-color:var(--sfv-preview-field-hover-color,var(--sfv-preview-field-color,#202840))!important}.sfv-preview-live-field:focus,.sfv-preview-live-field.is-preview-focus{color:var(--sfv-preview-field-focus-color,var(--sfv-preview-field-color,#202840))!important;background:var(--sfv-preview-field-focus-bg,var(--sfv-preview-field-bg,#fff))!important;border-color:var(--sfv-preview-field-focus-border,#635bff)!important;box-shadow:0 0 0 2px var(--sfv-preview-field-focus-outline,#c7c3ff)!important;outline:0!important;-webkit-text-fill-color:var(--sfv-preview-field-focus-color,var(--sfv-preview-field-color,#202840))!important}.sfv-preview-live-field:active,.sfv-preview-live-field.is-preview-active{color:var(--sfv-preview-field-active-color,var(--sfv-preview-field-color,#202840))!important;background:var(--sfv-preview-field-active-bg,#f8f8ff)!important;border-color:var(--sfv-preview-field-active-border,#5148ed)!important;-webkit-text-fill-color:var(--sfv-preview-field-active-color,var(--sfv-preview-field-color,#202840))!important}
+
+/* v1.10.9 — restore Required and Hide label controls */
+.sfv-field-settings .sfv-required-control{opacity:1!important;visibility:visible!important;pointer-events:auto!important;display:flex!important}
+.sfv-field-settings .sfv-required-control>input[type="checkbox"]{position:absolute!important;opacity:0!important;width:1px!important;height:1px!important;overflow:hidden!important}
+.sfv-field-settings .sfv-required-control:hover .sfv-required-box{border-color:#8b84ff}
+/* v1.11.0 — per-form confirmation settings */
+.sfv-settings-nav{position:static!important;top:auto!important}
+.sfv-form-confirmation-panel{margin-top:16px;padding:20px;border:1px solid #e3e7ef;border-radius:14px;background:#fff;box-shadow:0 7px 22px rgba(32,45,80,.05)}
+.sfv-form-confirmation-heading{display:flex;align-items:flex-start;justify-content:space-between;padding-bottom:15px;margin-bottom:16px;border-bottom:1px solid #edf0f5}
+.sfv-form-confirmation-heading h3{margin:4px 0 5px;font-size:18px;color:#202840}.sfv-form-confirmation-heading p{margin:0;color:#727c91;font-size:12px}
+.sfv-confirmation-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}.sfv-confirmation-control{display:grid;gap:6px}.sfv-confirmation-control>span{color:#3f4960;font-size:12px;font-weight:750}.sfv-confirmation-control small{color:#8b94a6;font-size:10px;line-height:1.45}.sfv-confirmation-control input,.sfv-confirmation-control select,.sfv-confirmation-control textarea{box-sizing:border-box;width:100%;min-height:40px;margin:0;padding:8px 11px;border:1px solid #dfe4ed;border-radius:9px;background:#fff;color:#202840;box-shadow:none}.sfv-confirmation-control textarea{resize:vertical;line-height:1.55}.sfv-confirmation-control input:focus,.sfv-confirmation-control select:focus,.sfv-confirmation-control textarea:focus{border-color:#635bff;box-shadow:0 0 0 2px rgba(99,91,255,.12);outline:0}.sfv-confirmation-wide{grid-column:1/-1}
+@media(max-width:782px){.sfv-confirmation-grid{grid-template-columns:1fr}.sfv-confirmation-wide{grid-column:auto}}
+
+/* v1.11.2 — robust Settings layout reset */
+.sfv-settings-page .sfv-settings-workspace{
+  display:grid !important;
+  grid-template-columns:220px minmax(0,1fr) 310px !important;
+  gap:14px !important;
+  align-items:start !important;
+  width:100% !important;
+}
+.sfv-settings-page .sfv-settings-nav,
+.sfv-settings-page .sfv-settings-main,
+.sfv-settings-page .sfv-settings-preview-panel{
+  display:block !important;
+  grid-template-columns:none !important;
+  min-width:0 !important;
+  width:auto !important;
+}
+.sfv-settings-page .sfv-settings-nav{
+  position:static !important;
+  top:auto !important;
+  padding:10px !important;
+  border:1px solid #e3e7ef;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 7px 22px rgba(32,45,80,.05);
+}
+.sfv-settings-page .sfv-settings-main{
+  overflow:hidden !important;
+  border:1px solid #e3e7ef;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 7px 22px rgba(32,45,80,.05);
+}
+.sfv-settings-page .sfv-settings-preview-panel{
+  position:static !important;
+  top:auto !important;
+}
+@media (max-width:1180px){
+  .sfv-settings-page .sfv-settings-workspace{
+    grid-template-columns:200px minmax(0,1fr) !important;
+  }
+  .sfv-settings-page .sfv-settings-preview-panel{
+    grid-column:2 !important;
+  }
+}
+@media (max-width:850px){
+  .sfv-settings-page .sfv-settings-workspace{
+    display:block !important;
+  }
+  .sfv-settings-page .sfv-settings-nav{
+    display:flex !important;
+    gap:5px !important;
+    margin-bottom:14px;
+    overflow-x:auto;
+  }
+  .sfv-settings-page .sfv-settings-main,
+  .sfv-settings-page .sfv-settings-preview-panel{
+    margin-bottom:14px;
+  }
+}
+
+/* v1.11.3 — Settings two-column layout: navigation and preview on the left */
+.sfv-settings-page .sfv-settings-workspace{
+  display:grid !important;
+  grid-template-columns:minmax(210px,260px) minmax(0,1fr) !important;
+  gap:16px !important;
+  align-items:start !important;
+}
+.sfv-settings-page .sfv-settings-left-column{
+  display:flex !important;
+  flex-direction:column !important;
+  gap:14px !important;
+  min-width:0 !important;
+}
+.sfv-settings-page .sfv-settings-left-column .sfv-settings-nav,
+.sfv-settings-page .sfv-settings-left-column .sfv-settings-preview-panel{
+  position:static !important;
+  top:auto !important;
+  width:auto !important;
+  min-width:0 !important;
+  margin:0 !important;
+}
+.sfv-settings-page .sfv-settings-main{
+  grid-column:2 !important;
+  min-width:0 !important;
+}
+.sfv-settings-page .sfv-settings-preview-panel{
+  padding:16px !important;
+  border:1px solid #e3e7ef;
+  border-radius:14px;
+  background:#fff;
+  box-shadow:0 7px 22px rgba(32,45,80,.05);
+}
+@media (max-width:900px){
+  .sfv-settings-page .sfv-settings-workspace{
+    grid-template-columns:1fr !important;
+  }
+  .sfv-settings-page .sfv-settings-main{
+    grid-column:auto !important;
+  }
+  .sfv-settings-page .sfv-settings-left-column{
+    display:block !important;
+  }
+  .sfv-settings-page .sfv-settings-nav{
+    display:flex !important;
+    gap:5px !important;
+    margin-bottom:14px !important;
+    overflow-x:auto;
+  }
+  .sfv-settings-page .sfv-settings-preview-panel{
+    margin-bottom:14px !important;
+  }
+}
+.sfv-preview-price{display:grid;gap:3px;padding:10px 12px;border:1px solid #dfe4ec;border-radius:8px}.sfv-preview-price strong{font-size:18px}.sfv-preview-price small{color:#697386}.sfv-pricing-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:10px}.sfv-pricing-settings small{display:block;margin-top:6px;color:#697386}
+
+.sfv-preview-price{box-sizing:border-box;min-height:34px;padding:6px 9px;align-content:center}
+.sfv-preview-price-no-label{grid-template-columns:1fr;text-align:right}
+.sfv-preview-price-no-label small{grid-column:1}
+.sfv-type-price_calculator:not([open]){align-self:start}
+
+/* v1.12.2 pricing editor and compact field controls */
+.sfv-pricing-settings{width:100%;min-width:0}.sfv-pricing-settings>.sfv-control.sfv-wide{display:block;width:100%;max-width:none}.sfv-pricing-settings textarea[data-k="pricing_text"]{display:block;box-sizing:border-box;width:100%!important;max-width:none!important;min-height:150px;resize:vertical}.sfv-pricing-settings small{width:100%}
+
+/* v1.12.6 — GDPR and submissions maintenance */
+.sfv-maintenance-card{margin-top:18px;padding-top:18px;border-top:1px solid #e5e9f0}
+.sfv-maintenance-heading{display:flex;gap:10px;align-items:flex-start;margin-bottom:14px}
+.sfv-maintenance-heading>.dashicons{display:grid;place-items:center;width:34px;height:34px;border-radius:10px;background:#fff1f2;color:#be123c}
+.sfv-maintenance-heading h3{margin:0 0 3px;font-size:15px;color:#162033}
+.sfv-maintenance-heading p,.sfv-maintenance-help{margin:0;color:#697386;font-size:12px;line-height:1.5}
+.sfv-maintenance-card form+.sfv-maintenance-help{margin-top:7px}
+.sfv-maintenance-card .sfv-maintenance-help+form{margin-top:12px}
+.sfv-btn-danger{background:#be123c!important;border-color:#be123c!important;color:#fff!important}
+.sfv-btn-danger:hover,.sfv-btn-danger:focus{background:#9f1239!important;border-color:#9f1239!important;color:#fff!important}
+.sfv-maintenance-notice{margin:0 0 16px!important}
+
+/* Submission PDF action */
+.sfv-submission-actions{display:flex;align-items:center;gap:8px;margin-left:auto}
+.sfv-pdf-link{display:inline-flex;align-items:center;gap:5px;min-height:34px;padding:6px 10px;border:1px solid #d8e0ec;border-radius:8px;background:#fff;color:#2356d8;text-decoration:none;font-size:12px;font-weight:700}
+.sfv-pdf-link:hover,.sfv-pdf-link:focus{border-color:#9eb6f5;background:#f4f7ff;color:#163fa8;box-shadow:none;outline:0}
+.sfv-pdf-link .dashicons{width:16px;height:16px;font-size:16px}
+@media(max-width:640px){.sfv-submission-meta{align-items:flex-start}.sfv-submission-actions{margin-left:0}}
+
+/* v1.12.8 — compact submissions table and bulk PDF */
+.sfv-bulk-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid #e8edf4;background:#fafbfd}.sfv-check-all{display:inline-flex;align-items:center;gap:9px;color:#536078;font-size:12px;font-weight:700}.sfv-check-all input,.sfv-row-checkbox input{width:17px;height:17px;margin:0;border:1px solid #bfc8d8;border-radius:5px;box-shadow:none}.sfv-selected-count{display:inline-grid;place-items:center;min-width:20px;height:20px;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.2);font-size:10px}.sfv-btn:disabled{opacity:.45;transform:none!important;box-shadow:none!important}.sfv-submission-table{padding:0 12px 12px}.sfv-submission-row{display:grid;grid-template-columns:34px minmax(170px,1.2fr) minmax(150px,1fr) minmax(90px,.55fr) 125px 72px;align-items:center;gap:12px;min-height:58px;padding:9px 10px;border-bottom:1px solid #edf1f5;color:#39445a;font-size:12px}.sfv-submission-row:not(.sfv-submission-head):hover{background:#f8faff}.sfv-submission-head{min-height:40px;color:#7a859a;font-size:10px;font-weight:800;text-transform:none;letter-spacing:.05em}.sfv-row-checkbox{display:grid;place-items:center}.sfv-row-primary{min-width:0}.sfv-row-primary strong{display:block;overflow:hidden;color:#182238;font-size:13px;text-overflow:ellipsis;white-space:nowrap}.sfv-row-primary small{display:block;margin-top:3px;overflow:hidden;color:#8993a5;font-size:10px;text-overflow:ellipsis;white-space:nowrap}.sfv-row-actions{display:flex;justify-content:flex-end;gap:5px}.sfv-icon-action{display:grid;place-items:center;width:31px;height:31px;border:1px solid #dfe5ee;border-radius:8px;background:#fff;color:#536078;text-decoration:none}.sfv-icon-action:hover{border-color:#b8c5db;background:#f5f8fc;color:#1d4ed8}.sfv-icon-action .dashicons{width:15px;height:15px;font-size:15px}.sfv-mobile-label{display:none}@media(max-width:980px){.sfv-submission-row{grid-template-columns:34px minmax(150px,1fr) minmax(130px,1fr) 90px 70px}.sfv-submission-row>time{display:none}.sfv-submission-head>span:nth-child(5){display:none}}@media(max-width:700px){.sfv-submission-head{display:none}.sfv-bulk-toolbar{align-items:stretch;flex-direction:column}.sfv-submission-row{grid-template-columns:34px 1fr 68px;gap:8px;padding:12px 8px}.sfv-submission-row>div:nth-child(3),.sfv-submission-row>div:nth-child(4){grid-column:2/3}.sfv-submission-row>time{display:block;grid-column:2/3;color:#8993a5;font-size:10px}.sfv-row-actions{grid-column:3;grid-row:1/5;align-self:center}.sfv-mobile-label{display:inline;margin-right:5px;color:#8a94a7;font-size:10px;font-weight:800;text-transform:none}}
+
+.sfv-media-control{display:flex;align-items:center;gap:8px;width:100%}.sfv-media-control input{flex:1;min-width:0}.sfv-media-control .sfv-btn{flex:0 0 auto;white-space:nowrap}@media(max-width:700px){.sfv-media-control{align-items:stretch;flex-direction:column}.sfv-media-control .sfv-btn{justify-content:center}}
+
+
+/* Alpha 3: number/quantity suffix preview. */
+.sfv-preview-affix{position:relative!important;display:block!important;width:100%!important;line-height:1}
+.sfv-preview-affix input{display:block!important;width:100%!important;height:40px!important;margin:0!important;padding-right:48px!important;box-sizing:border-box!important}
+.sfv-preview-affix>span{position:absolute!important;z-index:2;right:0!important;top:0!important;bottom:0!important;height:auto!important;min-width:40px;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0 10px!important;white-space:nowrap;line-height:1!important;font-size:12px;color:#64748b;border-left:1px solid #dfe3ea;pointer-events:none;box-sizing:border-box!important}
+
+/* Alpha 6: compact dynamic pricing rows */
+.sfv-pricing-table{margin-top:12px;border:1px solid #dfe4ec;border-radius:10px;overflow:hidden;background:#fff}
+.sfv-pricing-table-head,.sfv-pricing-row{display:grid;grid-template-columns:minmax(150px,1.6fr) minmax(100px,.8fr) minmax(100px,.8fr) 36px;gap:8px;align-items:center;padding:8px 10px}
+.sfv-pricing-table-head{background:#f6f7f9;color:#52606d;font-size:12px;font-weight:700;text-transform:none;letter-spacing:.04em}
+.sfv-pricing-row+.sfv-pricing-row{border-top:1px solid #edf0f4}
+.sfv-pricing-row .sfv-control{margin:0;min-width:0}
+.sfv-pricing-row input{width:100%;min-width:0}
+.sfv-pricing-remove{display:inline-grid;place-items:center;width:30px;height:30px;padding:0;border:0;border-radius:6px;background:transparent;color:#8a94a3;font-size:20px;line-height:1;cursor:pointer}
+.sfv-pricing-remove:hover,.sfv-pricing-remove:focus{background:#fff0f0;color:#b42318}
+.sfv-pricing-add{margin-top:10px!important}
+@media(max-width:782px){.sfv-pricing-table-head{display:none}.sfv-pricing-row{grid-template-columns:1fr 1fr 34px}.sfv-pricing-row .sfv-control:first-child{grid-column:1/-1}.sfv-pricing-row .sfv-pricing-remove{grid-column:3;grid-row:2}}
+
+/* GRFuel Manager 3.0 — daily prices and notifications */
+.grfuel-price-manager{padding:18px;border:1px solid #dfe6ef;border-radius:16px;background:linear-gradient(145deg,#fff 0%,#f7faff 100%);box-shadow:0 14px 36px rgba(35,55,90,.07)}
+.grfuel-price-head,.grfuel-price-row{display:grid;grid-template-columns:minmax(180px,1.35fr) minmax(220px,1.55fr) minmax(120px,.7fr) minmax(100px,.65fr) 38px;gap:10px;align-items:center}
+.grfuel-price-head{padding:0 10px 9px;color:#718096;font-size:10px;font-weight:800;text-transform:none;letter-spacing:.06em}
+.grfuel-price-row{padding:12px 10px;border-top:1px solid #e8edf5;background:#fff}.grfuel-price-row:first-child{border-top:0;border-radius:12px 12px 0 0}.grfuel-price-row:last-child{border-radius:0 0 12px 12px}
+.grfuel-price-row input{box-sizing:border-box;width:100%;min-height:40px;border:1px solid #dce3ee;border-radius:9px;background:#fbfcfe}.grfuel-price-row code{display:block;margin-top:5px;color:#3158b9;font-size:10px;white-space:normal;word-break:break-all}
+.grfuel-price-input{position:relative}.grfuel-price-input input{padding-right:34px}.grfuel-price-input span{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-weight:800;color:#56627a}
+.grfuel-remove-price{display:grid;place-items:center;width:34px;height:34px;border:0;border-radius:9px;background:#fff0f2;color:#be123c;font-size:22px;cursor:pointer}.grfuel-remove-price:hover{background:#ffe2e7}
+#grfuel-add-price{margin-top:14px}.grfuel-notification-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}.grfuel-toggle-card{display:flex;gap:12px;align-items:flex-start;padding:16px;border:1px solid #e0e7f0;border-radius:13px;background:#fff;cursor:pointer}.grfuel-toggle-card input{margin-top:3px}.grfuel-toggle-card strong,.grfuel-toggle-card small{display:block}.grfuel-toggle-card strong{color:#17223a}.grfuel-toggle-card small{margin-top:4px;color:#718096;line-height:1.45}
+@media(max-width:950px){.grfuel-price-head{display:none}.grfuel-price-row{grid-template-columns:1fr 1fr 38px}.grfuel-price-row>div:nth-child(2),.grfuel-price-row>input:first-child{grid-column:1/-1}.grfuel-notification-grid{grid-template-columns:1fr}}
+
+/* GRFuel Manager 4.0 — fullscreen application shell */
+body.grfuel-app-mode{background:#f4f6fa!important;color:#172033}
+body.grfuel-app-mode #wpadminbar,
+body.grfuel-app-mode #adminmenumain,
+body.grfuel-app-mode #screen-meta-links,
+body.grfuel-app-mode .update-nag,
+body.grfuel-app-mode .notice:not(.sfv-maintenance-notice),
+body.grfuel-app-mode .wp-header-end{display:none!important}
+body.grfuel-app-mode #wpcontent,
+body.grfuel-app-mode #wpfooter{margin-left:0!important}
+body.grfuel-app-mode #wpcontent{padding-left:0!important}
+body.grfuel-app-mode #wpbody-content{padding-bottom:0!important}
+body.grfuel-app-mode #wpfooter{display:none!important}
+body.grfuel-app-mode .wrap{margin:0!important}
+body.grfuel-app-mode #wpbody{padding-top:0!important}
+body.grfuel-app-mode .sfv-admin-page,
+body.grfuel-app-mode .sfv-inline-nav~*{box-sizing:border-box}
+body.grfuel-app-mode .sfv-admin-page{min-height:100vh;padding:0 28px 42px 286px!important;background:#f4f6fa}
+body.grfuel-app-mode .sfv-inline-nav{margin:0!important;padding:0 28px 0 286px;background:#f4f6fa}
+body.grfuel-app-mode .sfv-inline-nav+.wrap,
+body.grfuel-app-mode .sfv-inline-nav~form{margin-left:286px!important}
+body.grfuel-app-mode .grfuel-app-sidebar{position:fixed!important;z-index:10000;left:0;top:0;bottom:0;width:258px!important;height:100vh;margin:0!important;padding:22px 16px!important;display:flex!important;flex-direction:column!important;gap:22px!important;overflow:auto;background:#111827!important;border:0!important;border-radius:0!important;box-shadow:16px 0 42px rgba(15,23,42,.10)!important}
+.grfuel-sidebar-brand{display:flex;align-items:center;gap:12px;padding:5px 8px 17px;border-bottom:1px solid rgba(255,255,255,.09);color:#fff}.grfuel-sidebar-brand .grfuel-brand-icon{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:linear-gradient(145deg,#2563eb,#0ea5e9);box-shadow:0 10px 25px rgba(14,165,233,.25)}.grfuel-brand-icon svg{width:25px;height:25px}.grfuel-sidebar-brand strong,.grfuel-sidebar-brand span{display:block}.grfuel-sidebar-brand strong{font-size:17px;letter-spacing:-.02em}.grfuel-sidebar-brand div>span{margin-top:1px;color:#9ca3af;font-size:11px;text-transform:none;letter-spacing:.12em}
+.grfuel-sidebar-links{display:flex;flex-direction:column;gap:5px}.grfuel-app-sidebar .grfuel-sidebar-links a{display:flex!important;align-items:center!important;gap:11px!important;min-height:42px!important;padding:0 12px!important;border-radius:10px!important;color:#aeb8c7!important;text-decoration:none!important;font-size:13px!important;font-weight:650!important;box-shadow:none!important}.grfuel-app-sidebar .grfuel-sidebar-links a:hover{background:rgba(255,255,255,.07)!important;color:#fff!important}.grfuel-app-sidebar .grfuel-sidebar-links a.is-active{background:linear-gradient(135deg,#2563eb,#1d4ed8)!important;color:#fff!important;box-shadow:0 10px 24px rgba(37,99,235,.25)!important}.grfuel-app-sidebar .dashicons{width:18px;height:18px;font-size:18px}.grfuel-sidebar-foot{margin-top:auto;padding:14px 9px 2px;border-top:1px solid rgba(255,255,255,.09)}.grfuel-sidebar-foot span,.grfuel-sidebar-foot small,.grfuel-sidebar-foot a{display:block}.grfuel-sidebar-foot span{color:#e5e7eb;font-size:11px;font-weight:750}.grfuel-sidebar-foot small{margin-top:3px;color:#6b7280;font-size:10px}.grfuel-sidebar-foot a{margin-top:12px;color:#93c5fd;font-size:11px;text-decoration:none}
+.grfuel-app-topbar{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:30px 0 22px}.grfuel-app-topbar span{display:block;margin-bottom:5px;color:#7c879b;font-size:10px;font-weight:800;text-transform:none;letter-spacing:.12em}.grfuel-app-topbar h1{margin:0;color:#111827;font-size:28px;line-height:1.12;letter-spacing:-.035em}.grfuel-topbar-actions{display:flex;gap:9px}
+.grfuel-dashboard-main{max-width:1480px}.grfuel-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}.grfuel-stat-grid article{padding:20px;border:1px solid #e4e9f1;border-radius:16px;background:#fff;box-shadow:0 8px 28px rgba(31,41,55,.045)}.grfuel-stat-grid span,.grfuel-stat-grid strong,.grfuel-stat-grid small{display:block}.grfuel-stat-grid span{color:#78849a;font-size:11px;font-weight:750}.grfuel-stat-grid strong{margin-top:10px;color:#111827;font-size:31px;line-height:1}.grfuel-stat-grid small{margin-top:9px;color:#9aa4b4;font-size:10px}.grfuel-stat-live strong{font-size:16px;margin-top:17px;color:#17834f}.grfuel-stat-live i{display:inline-block;width:9px;height:9px;margin-right:5px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 5px rgba(34,197,94,.12)}
+.grfuel-dashboard-grid{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(280px,.7fr);gap:16px;margin-top:16px}.grfuel-dashboard-card{border:1px solid #e4e9f1;border-radius:17px;background:#fff;box-shadow:0 8px 28px rgba(31,41,55,.045);overflow:hidden}.grfuel-card-head{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:20px 21px;border-bottom:1px solid #edf0f5}.grfuel-card-head span{display:block;color:#7d899d;font-size:9px;font-weight:800;text-transform:none;letter-spacing:.12em}.grfuel-card-head h2{margin:4px 0 0;font-size:17px;color:#172033}.grfuel-card-head>a{color:#2563eb;text-decoration:none;font-size:11px;font-weight:750}.grfuel-recent-order{display:grid;grid-template-columns:44px 1fr auto;align-items:center;gap:12px;padding:13px 20px;border-bottom:1px solid #f0f2f6}.grfuel-recent-order:last-child{border-bottom:0}.grfuel-order-icon{display:grid;place-items:center;width:40px;height:40px;border-radius:12px;background:#eef4ff;color:#2457d6;font-size:11px;font-weight:800}.grfuel-recent-order strong,.grfuel-recent-order small{display:block}.grfuel-recent-order strong{color:#1b2435;font-size:12px}.grfuel-recent-order small{margin-top:3px;color:#8994a7;font-size:10px}.grfuel-recent-order time{color:#9aa4b4;font-size:10px}.grfuel-empty-state{padding:34px;text-align:center;color:#8a95a7}.grfuel-quick-card>a{display:flex;align-items:center;gap:12px;padding:15px 20px;border-bottom:1px solid #f0f2f6;color:#1d2939;text-decoration:none}.grfuel-quick-card>a:last-child{border-bottom:0}.grfuel-quick-card>a:hover{background:#f8faff}.grfuel-quick-card>a>.dashicons{display:grid;place-items:center;width:38px;height:38px;border-radius:11px;background:#f1f5fb;color:#2563eb;font-size:18px;line-height:38px}.grfuel-quick-card strong,.grfuel-quick-card small{display:block}.grfuel-quick-card strong{font-size:12px}.grfuel-quick-card small{margin-top:3px;color:#8b96a8;font-size:10px}
+body.grfuel-app-mode .sfv-section-intro{margin-top:28px!important}
+body.grfuel-app-mode .sfv-compact-nav:not(.grfuel-app-sidebar){display:none!important}
+body.grfuel-app-mode.post-type-sfv_form .wrap h1.wp-heading-inline{font-size:24px!important}
+body.grfuel-app-mode.post-type-sfv_form .page-title-action{border-radius:8px!important}
+body.grfuel-app-mode.post-type-sfv_form #posts-filter{padding-right:28px}
+body.grfuel-app-mode.post-type-sfv_form #poststuff{padding-right:28px}
+@media(max-width:1100px){.grfuel-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.grfuel-dashboard-grid{grid-template-columns:1fr}}
+@media(max-width:782px){body.grfuel-app-mode .sfv-admin-page{padding:0 15px 30px 82px!important}.grfuel-app-sidebar{width:66px!important;padding:14px 9px!important}.grfuel-sidebar-brand div,.grfuel-sidebar-links a span:last-child,.grfuel-sidebar-foot{display:none!important}.grfuel-sidebar-brand{padding:0 3px 14px}.grfuel-app-sidebar .grfuel-sidebar-links a{justify-content:center!important;padding:0!important}.grfuel-app-topbar{align-items:flex-start;flex-direction:column}.grfuel-stat-grid{grid-template-columns:1fr}.grfuel-topbar-actions{width:100%;flex-wrap:wrap}}
+
+/* GRFuel 4.0.0-alpha.2 fullscreen layout fixes and collapsible navigation */
+body.grfuel-app-mode.post-type-sfv_form #wpbody-content{box-sizing:border-box;padding-left:286px!important;padding-right:28px!important}
+body.grfuel-app-mode.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){max-width:none!important;margin:0!important}
+.grfuel-sidebar-toggle{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;margin-left:auto;padding:0;border:1px solid rgba(255,255,255,.13);border-radius:8px;background:rgba(255,255,255,.06);color:#dbeafe;cursor:pointer}
+.grfuel-sidebar-toggle:hover{background:rgba(255,255,255,.13);color:#fff}.grfuel-sidebar-toggle .dashicons{transition:transform .2s ease}
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar{width:72px!important;padding-left:9px!important;padding-right:9px!important}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-brand>div,body.grfuel-sidebar-collapsed .grfuel-sidebar-links a span:last-child,body.grfuel-sidebar-collapsed .grfuel-sidebar-foot{display:none!important}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-brand{gap:5px;padding-left:0;padding-right:0}.grfuel-sidebar-collapsed .grfuel-sidebar-brand .grfuel-brand-icon{width:38px;height:38px}.grfuel-sidebar-collapsed .grfuel-sidebar-toggle{position:absolute;left:55px;top:28px;width:24px;height:24px;background:#2563eb;border-color:#2563eb}.grfuel-sidebar-collapsed .grfuel-sidebar-toggle .dashicons{transform:rotate(180deg)}
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-sidebar-links a{justify-content:center!important;padding:0!important}
+body.grfuel-sidebar-collapsed .sfv-admin-page{padding-left:100px!important}body.grfuel-sidebar-collapsed .sfv-inline-nav{padding-left:100px!important}body.grfuel-sidebar-collapsed.post-type-sfv_form #wpbody-content{padding-left:100px!important}
+.grfuel-prices-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:18px;margin:0 0 22px}.grfuel-price-history-card{padding:22px;border:1px solid #e2e8f0;border-radius:16px;background:#fff;box-shadow:0 10px 28px rgba(15,23,42,.05)}.grfuel-price-history-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}.grfuel-price-history-head small{color:#8490a4;font-size:11px;text-transform:none;letter-spacing:.08em}.grfuel-price-history-head h2{margin:4px 0 0;font-size:18px}.grfuel-price-history-head>strong{font-size:25px;color:#111827}.grfuel-price-trend{display:inline-flex;align-items:center;gap:5px;margin:12px 0 4px;padding:5px 9px;border-radius:999px;background:#f1f5f9;color:#64748b;font-size:11px;font-weight:750}.grfuel-price-trend.is-up{background:#fff1f2;color:#be123c}.grfuel-price-trend.is-down{background:#ecfdf5;color:#047857}.grfuel-price-chart{position:relative;color:#2563eb}.grfuel-price-chart.is-up{color:#e11d48}.grfuel-price-chart.is-down{color:#059669}.grfuel-price-chart svg{display:block;width:100%;height:auto}.grfuel-chart-line{fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.grfuel-chart-area{fill:url(#grfuel-chart-fill);stroke:none}.grfuel-chart-scale{display:flex;justify-content:space-between;color:#94a3b8;font-size:10px}.grfuel-chart-empty{display:grid;place-items:center;min-height:150px;margin:12px 0;color:#94a3b8;border:1px dashed #dbe2ea;border-radius:12px;background:#f8fafc;text-align:center}.grfuel-price-shortcodes{display:grid;gap:7px;margin-top:14px}.grfuel-price-shortcodes code{display:block;overflow:auto;padding:8px 10px;border-radius:8px;background:#f1f5f9;color:#334155;font-size:11px;white-space:nowrap}
+@media(max-width:782px){body.grfuel-app-mode.post-type-sfv_form #wpbody-content{padding-left:82px!important;padding-right:12px!important}.grfuel-sidebar-toggle{display:none}.grfuel-prices-grid{grid-template-columns:1fr}}
+
+/* GRFuel 4.0.0-alpha.3 — forms screen alignment and reliable compact sidebar */
+body.grfuel-app-mode.post-type-sfv_form #wpbody-content{
+  padding-left:0!important;
+  padding-right:0!important;
+}
+body.grfuel-app-mode.post-type-sfv_form .sfv-inline-nav{
+  box-sizing:border-box!important;
+  width:100%!important;
+  padding-left:286px!important;
+  padding-right:28px!important;
+}
+body.grfuel-app-mode.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){
+  box-sizing:border-box!important;
+  width:calc(100% - 286px)!important;
+  max-width:none!important;
+  margin:0 28px 0 286px!important;
+  padding:0!important;
+}
+body.grfuel-app-mode.post-type-sfv_form #posts-filter,
+body.grfuel-app-mode.post-type-sfv_form #poststuff{
+  box-sizing:border-box!important;
+  width:100%!important;
+  padding-right:0!important;
+}
+body.grfuel-app-mode.post-type-sfv_form .sfv-inline-nav .sfv-section-intro{
+  margin-left:0!important;
+  margin-right:0!important;
+}
+.grfuel-sidebar-brand{position:relative}
+.grfuel-sidebar-toggle{
+  position:absolute!important;
+  z-index:3;
+  top:13px;
+  right:-31px;
+  display:grid!important;
+  place-items:center!important;
+  width:30px!important;
+  height:38px!important;
+  margin:0!important;
+  padding:0!important;
+  border:1px solid #dbe3ef!important;
+  border-left:0!important;
+  border-radius:0 10px 10px 0!important;
+  background:#fff!important;
+  color:#344054!important;
+  box-shadow:5px 0 15px rgba(15,23,42,.08)!important;
+  cursor:pointer!important;
+  transition:background .18s ease,color .18s ease,transform .18s ease!important;
+}
+.grfuel-sidebar-toggle:hover,
+.grfuel-sidebar-toggle:focus-visible{
+  background:#eff6ff!important;
+  color:#2563eb!important;
+  outline:none!important;
+}
+.grfuel-sidebar-toggle svg{width:18px;height:18px;transition:transform .2s ease}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle{
+  left:auto!important;
+  right:-31px!important;
+  top:13px!important;
+  width:30px!important;
+  height:38px!important;
+  border-color:#dbe3ef!important;
+  border-left:0!important;
+  border-radius:0 10px 10px 0!important;
+  background:#fff!important;
+  color:#344054!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle svg{transform:rotate(180deg)}
+body.grfuel-sidebar-collapsed.post-type-sfv_form .sfv-inline-nav{
+  padding-left:100px!important;
+}
+body.grfuel-sidebar-collapsed.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){
+  width:calc(100% - 100px)!important;
+  margin-left:100px!important;
+}
+@media(max-width:782px){
+  body.grfuel-app-mode.post-type-sfv_form .sfv-inline-nav{padding-left:82px!important;padding-right:12px!important}
+  body.grfuel-app-mode.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){width:calc(100% - 82px)!important;margin-left:82px!important;margin-right:12px!important}
+  .grfuel-sidebar-toggle{display:none!important}
+}
+
+/* GRFuel 4.0.0-alpha.4 — isolated YOOtheme-first forms screen */
+body.grfuel-app-mode .grfuel-forms-page{
+  box-sizing:border-box!important;
+  width:auto!important;
+  max-width:none!important;
+  min-height:100vh!important;
+  margin:0!important;
+  padding:28px 32px 48px 290px!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-forms-page{padding-left:104px!important}
+.grfuel-forms-page>.sfv-section-intro{
+  width:100%!important;
+  max-width:none!important;
+  margin:0 0 24px!important;
+  transform:none!important;
+}
+.grfuel-forms-main{width:100%;max-width:none;margin:0;padding:0}
+.grfuel-forms-list{overflow:hidden;border:1px solid #e4e9f2;border-radius:18px;background:#fff;box-shadow:0 12px 35px rgba(15,23,42,.06)}
+.grfuel-forms-list-head,.grfuel-form-row{display:grid;grid-template-columns:minmax(240px,1.4fr) minmax(220px,1fr) 110px 150px minmax(210px,auto);gap:18px;align-items:center}
+.grfuel-forms-list-head{padding:13px 20px;background:#f8fafc;border-bottom:1px solid #e8edf5;color:#7a8496;font-size:11px;font-weight:800;text-transform:none;letter-spacing:.08em}
+.grfuel-form-row{padding:18px 20px;border-bottom:1px solid #eef2f7}
+.grfuel-form-row:last-child{border-bottom:0}
+.grfuel-form-row:hover{background:#fbfdff}
+.grfuel-form-title{display:flex;align-items:center;gap:12px;min-width:0}.grfuel-form-title>.dashicons{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border-radius:11px;background:#eff6ff;color:#2563eb}.grfuel-form-title strong,.grfuel-form-title small{display:block}.grfuel-form-title strong{overflow:hidden;color:#172033;font-size:14px;text-overflow:ellipsis;white-space:nowrap}.grfuel-form-title small{margin-top:3px;color:#98a2b3;font-size:11px}
+.grfuel-form-row code{overflow:hidden;padding:8px 10px;border:1px solid #e5eaf2;border-radius:8px;background:#f8fafc;color:#344054;font-size:11px;text-overflow:ellipsis;white-space:nowrap}
+.grfuel-form-status{display:inline-flex;justify-content:center;padding:6px 9px;border-radius:999px;font-size:11px;font-weight:800}.grfuel-form-status.is-active{background:#ecfdf3;color:#067647}.grfuel-form-status.is-draft{background:#fff7ed;color:#b54708}.grfuel-form-row time{color:#667085;font-size:12px}.grfuel-form-actions{display:flex;justify-content:flex-end;gap:8px}.grfuel-form-actions .sfv-btn{min-height:36px;padding:0 12px;font-size:12px}
+.grfuel-forms-empty{padding:68px 24px;text-align:center;border:1px dashed #cfd8e6;border-radius:18px;background:#fff}.grfuel-forms-empty>.dashicons{width:48px;height:48px;font-size:48px;color:#93a4bd}.grfuel-forms-empty h2{margin:16px 0 8px}.grfuel-forms-empty p{max-width:520px;margin:0 auto 20px;color:#667085}
+
+/* Toggle lives below navigation, never beside the brand. */
+.grfuel-sidebar-brand{position:static!important}
+.grfuel-sidebar-toggle,
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle{
+  position:static!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:10px!important;
+  width:100%!important;
+  height:40px!important;
+  margin:4px 0 0!important;
+  padding:0 12px!important;
+  border:1px solid rgba(255,255,255,.10)!important;
+  border-radius:10px!important;
+  background:rgba(255,255,255,.045)!important;
+  color:#aeb8c7!important;
+  box-shadow:none!important;
+}
+.grfuel-sidebar-toggle:hover,.grfuel-sidebar-toggle:focus-visible{background:rgba(255,255,255,.09)!important;color:#fff!important}
+.grfuel-sidebar-toggle svg{flex:0 0 18px;width:18px;height:18px}
+.grfuel-sidebar-toggle>span{font-size:12px;font-weight:750}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle{justify-content:center!important;padding:0!important}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle>span{display:none!important}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle svg{transform:rotate(180deg)}
+
+@media(max-width:1180px){.grfuel-forms-list-head{display:none}.grfuel-form-row{grid-template-columns:1fr auto}.grfuel-form-row>code,.grfuel-form-row>time{grid-column:1}.grfuel-form-row>.grfuel-form-status{grid-column:2;grid-row:1}.grfuel-form-actions{grid-column:2;grid-row:2 / span 2;align-self:end}}
+@media(max-width:782px){body.grfuel-app-mode .grfuel-forms-page{padding:18px 14px 36px 82px!important}.grfuel-form-row{grid-template-columns:1fr}.grfuel-form-row>.grfuel-form-status,.grfuel-form-actions{grid-column:1;grid-row:auto;justify-content:flex-start}.grfuel-sidebar-toggle{display:none!important}}
+
+/* GRFuel Manager 4.0.0-alpha.5 — notification center and price-history tools */
+.grfuel-order-badge{display:inline-grid;place-items:center;min-width:20px;height:20px;margin-left:auto;padding:0 6px;border-radius:999px;background:#ef4444;color:#fff;font-size:10px;font-weight:800;box-shadow:0 0 0 3px rgba(239,68,68,.13)}
+.grfuel-order-badge[hidden]{display:none!important}
+body.grfuel-sidebar-collapsed .grfuel-order-badge{position:absolute;top:2px;right:2px;min-width:16px;height:16px;padding:0 4px;font-size:8px}
+.grfuel-notification-host{position:fixed;z-index:100000;top:24px;right:24px;display:flex;flex-direction:column;gap:12px;width:min(390px,calc(100vw - 32px));pointer-events:none}
+.grfuel-order-toast{position:relative;display:grid;grid-template-columns:50px 1fr;gap:14px;overflow:hidden;padding:18px;border:1px solid rgba(255,255,255,.13);border-radius:18px;background:linear-gradient(145deg,#111827,#17233a);color:#fff;box-shadow:0 28px 70px rgba(15,23,42,.42);opacity:0;transform:translateY(-18px) scale(.97);transition:opacity .24s ease,transform .24s ease;pointer-events:auto}
+.grfuel-order-toast.is-visible{opacity:1;transform:none}.grfuel-order-toast:before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:linear-gradient(#38bdf8,#2563eb)}
+.grfuel-toast-icon{display:grid;place-items:center;width:48px;height:48px;border-radius:15px;background:linear-gradient(145deg,#2563eb,#0ea5e9);font-size:22px;box-shadow:0 10px 24px rgba(14,165,233,.28)}
+.grfuel-toast-copy{min-width:0}.grfuel-toast-copy small{display:block;color:#93c5fd;font-size:10px;font-weight:800;text-transform:none;letter-spacing:.12em}.grfuel-toast-copy strong{display:block;margin-top:4px;font-size:18px}.grfuel-toast-copy>span{display:block;margin-top:8px;color:#fff;font-weight:700}.grfuel-toast-copy p{margin:3px 0 13px;color:#cbd5e1;font-size:13px}.grfuel-toast-copy a{display:inline-flex;padding:8px 11px;border-radius:9px;background:#2563eb;color:#fff;text-decoration:none;font-size:12px;font-weight:750}.grfuel-toast-close{position:absolute;top:9px;right:10px;padding:4px 7px;border:0;background:transparent;color:#94a3b8;font-size:20px;cursor:pointer}
+.grfuel-chart-tool{display:grid;grid-template-columns:minmax(0,1fr) minmax(440px,1.1fr);gap:24px;margin:0 0 20px;padding:24px;border:1px solid #e2e8f0;border-radius:18px;background:linear-gradient(145deg,#fff,#f8fbff);box-shadow:0 12px 35px rgba(15,23,42,.05)}.grfuel-chart-tool h2{margin:5px 0 7px;font-size:22px}.grfuel-chart-tool p{margin:0;color:#6b7280;line-height:1.55}.grfuel-chart-tool-form{display:grid;grid-template-columns:1fr 1fr;gap:12px}.grfuel-chart-tool-form label{display:grid;gap:6px;color:#334155;font-size:12px;font-weight:750}.grfuel-chart-tool-form label>div{display:flex;align-items:center;border:1px solid #dbe3ee;border-radius:11px;background:#fff}.grfuel-chart-tool-form input[type=number]{width:100%;min-height:42px;padding:0 12px;border:0;background:transparent;box-shadow:none}.grfuel-chart-tool-form label>div>span{padding:0 11px;color:#64748b;font-size:11px}.grfuel-chart-tool-form .grfuel-tool-toggle{grid-column:1/-1;display:flex;align-items:center;gap:9px;padding:11px;border:1px solid #dbe3ee;border-radius:11px;background:#fff}.grfuel-chart-tool-form .submit{grid-column:1/-1;margin:0}.grfuel-inline-success,.grfuel-inline-error{margin:0 0 16px;padding:12px 14px;border-radius:11px;font-weight:650}.grfuel-inline-success{background:#ecfdf5;color:#047857}.grfuel-inline-error{background:#fff1f2;color:#be123c}
+.grfuel-price-entry-form{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:end;margin-top:16px;padding-top:16px;border-top:1px solid #e5e7eb}.grfuel-price-entry-form label{display:grid;gap:6px;color:#475569;font-size:11px;font-weight:750}.grfuel-price-entry-form input{width:100%;min-height:42px;padding:0 10px;border:1px solid #dbe3ee;border-radius:10px}.grfuel-price-entry-form label>div{display:flex;align-items:center}.grfuel-price-entry-form label>div input{border-radius:10px 0 0 10px}.grfuel-price-entry-form label>div span{display:grid;place-items:center;min-height:42px;padding:0 11px;border:1px solid #dbe3ee;border-left:0;border-radius:0 10px 10px 0;background:#f8fafc;color:#64748b}
+/* Keep the legacy editor usable until the dedicated GRFuel builder route replaces it. */
+body.grfuel-app-mode.post-new-php.post-type-sfv_form #wpbody-content,body.grfuel-app-mode.post-php.post-type-sfv_form #wpbody-content{padding-left:278px!important;padding-right:24px!important;box-sizing:border-box}body.grfuel-sidebar-collapsed.post-new-php.post-type-sfv_form #wpbody-content,body.grfuel-sidebar-collapsed.post-php.post-type-sfv_form #wpbody-content{padding-left:104px!important}body.grfuel-app-mode.post-type-sfv_form #poststuff{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:18px}body.grfuel-app-mode.post-type-sfv_form #post-body.columns-2{margin-right:0}body.grfuel-app-mode.post-type-sfv_form #post-body-content{float:none;width:auto}body.grfuel-app-mode.post-type-sfv_form #postbox-container-1{float:none;width:auto;margin:0}body.grfuel-app-mode.post-type-sfv_form #postbox-container-2{float:none;width:auto}body.grfuel-app-mode.post-type-sfv_form #titlediv #title{min-height:54px;border:1px solid #dbe3ee;border-radius:14px;background:#fff;font-size:20px;box-shadow:none}body.grfuel-app-mode.post-type-sfv_form #submitdiv{border:1px solid #e2e8f0;border-radius:15px;overflow:hidden;box-shadow:0 10px 28px rgba(15,23,42,.05)}
+@media(max-width:1050px){.grfuel-chart-tool{grid-template-columns:1fr}.grfuel-price-entry-form{grid-template-columns:1fr 1fr}.grfuel-price-entry-form button{grid-column:1/-1}.grfuel-chart-tool-form{grid-template-columns:1fr}body.grfuel-app-mode.post-type-sfv_form #poststuff{grid-template-columns:1fr}}
+@media(max-width:782px){.grfuel-notification-host{top:12px;right:12px}.grfuel-price-entry-form{grid-template-columns:1fr}.grfuel-chart-tool{padding:17px}.grfuel-chart-tool-form label,.grfuel-chart-tool-form .grfuel-tool-toggle,.grfuel-chart-tool-form .submit{grid-column:1}body.grfuel-app-mode.post-new-php.post-type-sfv_form #wpbody-content,body.grfuel-app-mode.post-php.post-type-sfv_form #wpbody-content{padding-left:82px!important;padding-right:12px!important}}
+
+/* 4.0.0-alpha.6 — full-width form editor and Greek UI refinements */
+body.grfuel-app-mode.post-type-sfv_form #poststuff{display:block!important;padding-right:0!important}
+body.grfuel-app-mode.post-type-sfv_form #post-body.columns-2{margin-right:0!important}
+body.grfuel-app-mode.post-type-sfv_form #postbox-container-1{display:none!important}
+body.grfuel-app-mode.post-type-sfv_form #post-body-content,body.grfuel-app-mode.post-type-sfv_form #postbox-container-2{float:none!important;width:100%!important}
+body.grfuel-app-mode.post-type-sfv_form #titlediv #title{height:46px!important;min-height:46px!important;padding:0 14px!important;font-size:16px!important;line-height:46px!important}
+body.grfuel-app-mode.post-type-sfv_form #titlediv #title:focus::placeholder{opacity:0}
+.sfv-form-save-bar{display:flex;justify-content:flex-end;margin-top:18px;padding:16px 0 6px;border-top:1px solid #e4e9f1}
+.sfv-form-save-bar .sfv-btn{min-width:190px;justify-content:center}
+.grfuel-sound-picker{grid-column:1/-1}.grfuel-sound-picker>div{display:flex;gap:10px;align-items:center}.grfuel-sound-picker select{min-width:230px}
+.sfv-settings-pane[data-settings-pane="forms"]{display:none}.sfv-settings-pane[data-settings-pane="forms"].is-active{display:block}
+
+
+/* alpha.7 layout and workflow fixes */
+body.grfuel-app-mode .sfv-admin-page{max-width:none!important;width:auto!important;padding-right:28px!important}
+.grfuel-chart-tool{grid-template-columns:1fr!important}
+.grfuel-chart-tool-form{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}
+.grfuel-price-manager{grid-column:1/-1;min-width:0}
+.grfuel-price-row{grid-template-columns:minmax(180px,1fr) minmax(230px,1.25fr) minmax(130px,.65fr) minmax(120px,.55fr) 42px!important}
+.grfuel-price-row>*{min-width:0}
+.grfuel-price-row input{width:100%;box-sizing:border-box}
+.grfuel-form-dialog{width:min(520px,calc(100vw - 32px));padding:0;border:0;border-radius:20px;box-shadow:0 28px 80px rgba(15,23,42,.28)}
+.grfuel-form-dialog::backdrop{background:rgba(15,23,42,.48);backdrop-filter:blur(3px)}
+.grfuel-form-dialog form{padding:24px}.grfuel-dialog-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.grfuel-dialog-head h2{margin:5px 0 6px;font-size:23px}.grfuel-dialog-head p{margin:0;color:#64748b}.grfuel-dialog-close{border:0;background:transparent;color:#64748b;font-size:30px;line-height:1;cursor:pointer}.grfuel-form-dialog label{display:grid;gap:8px;margin-top:22px;font-weight:750;color:#334155}.grfuel-form-dialog input[type=text]{min-height:48px;padding:0 14px;border:1px solid #dbe3ee;border-radius:12px;font-size:15px;box-shadow:none}.grfuel-form-dialog input[type=text]:focus::placeholder{color:transparent}.grfuel-dialog-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:22px}
+body.grfuel-app-mode.post-type-sfv_form #poststuff{display:block!important}
+body.grfuel-app-mode.post-type-sfv_form #postbox-container-1{display:none!important}
+body.grfuel-app-mode.post-type-sfv_form #post-body.columns-2{margin-right:0!important}
+body.grfuel-app-mode.post-type-sfv_form #titlediv #title{font-size:16px!important;line-height:1.2!important;padding:0 14px!important}
+body.grfuel-app-mode.post-type-sfv_form #titlediv #title:focus::placeholder{color:transparent}
+@media(max-width:900px){.grfuel-chart-tool-form{grid-template-columns:1fr!important}.grfuel-price-row{grid-template-columns:1fr!important}.grfuel-price-head{display:none!important}.grfuel-remove-price{justify-self:end}}
+
+/* 4.0.0-alpha.8 — form editor width, form actions and multi-row price history */
+body.grfuel-app-mode.post-type-sfv_form #wpbody-content{padding-left:286px!important;padding-right:28px!important;box-sizing:border-box!important}
+body.grfuel-sidebar-collapsed.post-type-sfv_form #wpbody-content{padding-left:104px!important}
+body.grfuel-app-mode.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box!important}
+.grfuel-form-actions{flex-wrap:wrap}.grfuel-delete-form{margin:0}.sfv-btn-danger{border-color:#fecaca!important;background:#fff1f2!important;color:#be123c!important}.sfv-btn-danger:hover{background:#ffe4e6!important;color:#9f1239!important}
+.grfuel-price-entry-form{display:block!important}.grfuel-history-entry-rows{display:grid;gap:10px;width:100%}.grfuel-history-entry-row{display:grid;grid-template-columns:minmax(170px,.8fr) minmax(180px,1fr) 40px;gap:10px;align-items:end;padding:10px;border:1px solid #e2e8f0;border-radius:12px;background:#f8fafc}.grfuel-history-entry-row label{margin:0}.grfuel-history-remove{display:grid;place-items:center;width:40px;height:42px;border:1px solid #fecdd3;border-radius:10px;background:#fff1f2;color:#e11d48;font-size:20px;cursor:pointer}.grfuel-history-actions{display:flex;justify-content:space-between;gap:10px;margin-top:12px}.grfuel-history-actions .sfv-btn{justify-content:center}
+@media(max-width:782px){body.grfuel-app-mode.post-type-sfv_form #wpbody-content{padding-left:82px!important;padding-right:14px!important}.grfuel-history-entry-row{grid-template-columns:1fr}.grfuel-history-remove{justify-self:end}.grfuel-history-actions{flex-direction:column}.grfuel-history-actions .sfv-btn{width:100%}}
+
+/* 4.0.0-alpha.9 — align the form editor with the universal application gutter. */
+body.grfuel-app-mode.post-type-sfv_form #wpbody-content{
+  padding-left:0!important;
+  padding-right:0!important;
+}
+body.grfuel-app-mode.post-type-sfv_form .sfv-inline-nav{
+  width:100%!important;
+  padding-left:286px!important;
+  padding-right:28px!important;
+}
+body.grfuel-app-mode.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){
+  width:calc(100% - 314px)!important;
+  max-width:none!important;
+  margin-left:286px!important;
+  margin-right:28px!important;
+  padding:0!important;
+}
+body.grfuel-sidebar-collapsed.post-type-sfv_form .sfv-inline-nav{
+  padding-left:104px!important;
+}
+body.grfuel-sidebar-collapsed.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){
+  width:calc(100% - 132px)!important;
+  margin-left:104px!important;
+  margin-right:28px!important;
+}
+@media(max-width:782px){
+  body.grfuel-app-mode.post-type-sfv_form .sfv-inline-nav{
+    padding-left:82px!important;
+    padding-right:14px!important;
+  }
+  body.grfuel-app-mode.post-type-sfv_form #wpbody-content>.wrap:not(.sfv-admin-page){
+    width:calc(100% - 96px)!important;
+    margin-left:82px!important;
+    margin-right:14px!important;
+  }
+}
+
+/* alpha.10 — richer price chart and persistent price archive */
+.grfuel-price-chart{margin-top:14px;padding:14px 14px 8px;border:1px solid #e5eaf2;border-radius:16px;background:linear-gradient(180deg,#fff 0%,#f8fbff 100%);overflow:hidden}
+.grfuel-chart-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 8px}.grfuel-chart-summary span{display:grid;gap:2px;padding:9px 11px;border:1px solid #e7edf5;border-radius:11px;background:rgba(255,255,255,.78)}.grfuel-chart-summary small{color:#8490a4;font-size:10px;text-transform:none;letter-spacing:.05em}.grfuel-chart-summary strong{color:#182235;font-size:14px}
+.grfuel-chart-grid line{stroke:#dbe4f0;stroke-width:1;stroke-dasharray:4 6}.grfuel-chart-axis-labels text{fill:#8b98aa;font-size:11px}.grfuel-chart-line{fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.grfuel-chart-area{stroke:none}.grfuel-chart-point circle{fill:#fff;stroke:currentColor;stroke-width:4;cursor:help;transition:r .16s ease,fill .16s ease}.grfuel-chart-point circle:hover,.grfuel-chart-point circle:focus{r:8;fill:currentColor;outline:none}
+.grfuel-chart-empty{gap:5px}.grfuel-chart-empty .dashicons{width:36px;height:36px;font-size:36px}.grfuel-chart-empty strong{color:#526078}.grfuel-chart-empty small{max-width:360px}
+.grfuel-price-archive{margin-top:16px;border:1px solid #e2e8f0;border-radius:14px;background:#fff;overflow:hidden}.grfuel-price-archive-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-bottom:1px solid #e8edf4;background:#f8fafc}.grfuel-price-archive-head>div{display:flex;align-items:center;gap:8px}.grfuel-price-archive-head small{color:#718096}.grfuel-price-archive-list{max-height:310px;overflow:auto}.grfuel-price-archive-row{display:grid;grid-template-columns:1fr auto 38px;align-items:center;gap:12px;padding:10px 14px;border-bottom:1px solid #eef2f7}.grfuel-price-archive-row:last-child{border-bottom:0}.grfuel-price-archive-row time{color:#526078}.grfuel-price-archive-row strong{font-variant-numeric:tabular-nums}.grfuel-price-archive-row form{margin:0}.grfuel-archive-delete{display:grid;place-items:center;width:34px;height:34px;padding:0;border:1px solid #fecdd3;border-radius:9px;background:#fff1f2;color:#be123c;cursor:pointer}.grfuel-archive-delete:hover{background:#ffe4e6}.grfuel-price-archive-empty{margin:0;padding:16px;color:#8490a4;text-align:center}
+@media(max-width:600px){.grfuel-chart-summary{grid-template-columns:1fr}.grfuel-price-chart{padding:10px}.grfuel-price-archive-row{grid-template-columns:1fr auto 34px}}
+
+/* alpha.25: chart shortcode controls restored on Daily Prices. */
+.grfuel-chart-shortcodes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin:18px 0}
+.grfuel-chart-shortcode-card{padding:16px;border:1px solid #e2e8f0;border-radius:14px;background:#fff}
+.grfuel-chart-shortcode-card>strong{display:block;margin-bottom:12px;color:#172033;font-size:14px}
+.grfuel-chart-shortcode-card label{display:block;margin-top:9px}
+.grfuel-chart-shortcode-card label span{display:block;margin-bottom:5px;color:#64748b;font-size:11px;font-weight:700}
+.grfuel-chart-shortcode-card code{display:block;overflow:auto;padding:9px 10px;border-radius:8px;background:#f6f8fb;color:#26344d;white-space:nowrap}
+
+/* GRFuel Manager 4.0.0-alpha.28 — browser notification permission status */
+.grfuel-browser-notification-panel{grid-column:1/-1;padding:16px;border:1px solid #dbe4ef;border-radius:14px;background:#fff}.grfuel-browser-notification-status{display:flex;align-items:center;gap:11px}.grfuel-browser-notification-status strong,.grfuel-browser-notification-status small{display:block}.grfuel-browser-notification-status strong{color:#17223a}.grfuel-browser-notification-status small{margin-top:3px;color:#667085}.grfuel-browser-status-dot{width:11px;height:11px;border-radius:50%;background:#98a2b3;box-shadow:0 0 0 4px rgba(152,162,179,.14);flex:none}.grfuel-browser-notification-status.is-active .grfuel-browser-status-dot{background:#17a673;box-shadow:0 0 0 4px rgba(23,166,115,.14)}.grfuel-browser-notification-status.is-blocked .grfuel-browser-status-dot,.grfuel-browser-notification-status.is-unsupported .grfuel-browser-status-dot{background:#d92d20;box-shadow:0 0 0 4px rgba(217,45,32,.13)}.grfuel-browser-notification-status.is-pending .grfuel-browser-status-dot{background:#f79009;box-shadow:0 0 0 4px rgba(247,144,9,.14)}.grfuel-browser-notification-actions{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}.grfuel-browser-notification-help{margin:11px 0 0;color:#667085;font-size:13px;line-height:1.5}.grfuel-browser-notification-actions [hidden]{display:none!important}
+
+/* 4.0.0 UI polish */
+.sfv-canvas-heading{padding-right:12px}
+.sfv-canvas-heading>span{padding-right:2px;white-space:nowrap}
+.sfv-confirmation-grid,.grfuel-price-head,.grfuel-price-row{align-items:start}
+.sfv-confirmation-control{align-self:start}
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-nav-label{display:none!important}
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-nav-icon{display:inline-block!important}
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-order-badge{position:absolute;top:5px;right:5px;display:grid!important}
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-order-badge[hidden]{display:none!important}
+.grfuel-sidebar-links a{position:relative}
+.grfuel-sidebar-toggle{display:flex;align-items:center;justify-content:center;gap:7px;width:auto;min-width:116px;height:38px;margin:12px auto 4px;padding:0 13px;border:1px solid rgba(255,255,255,.16);border-radius:999px;background:rgba(255,255,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);transition:background .18s ease,transform .18s ease,border-color .18s ease}
+.grfuel-sidebar-toggle:hover{transform:translateY(-1px);border-color:rgba(255,255,255,.28);background:rgba(255,255,255,.14)}
+.grfuel-sidebar-toggle svg{flex:0 0 18px;width:18px;height:18px;transition:transform .2s ease}
+.grfuel-sidebar-toggle>span{font-size:11px;font-weight:750;letter-spacing:.02em}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle{position:absolute;left:50%;top:25px;width:30px;min-width:30px;height:30px;margin:0;padding:0;transform:translateX(-50%);border-radius:50%;background:#2563eb;border-color:#4f8cff}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle:hover{transform:translateX(-50%) translateY(-1px)}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle svg{transform:rotate(180deg)}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle>span{display:none!important}
+
+
+/* GRFuel Manager 4.0.1 — sidebar and builder polish */
+.sfv-form-hero{
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:none!important;
+}
+
+/* In collapsed mode the active item has no blue tile; only its icon stays white. */
+body.grfuel-sidebar-collapsed .grfuel-sidebar-links a.is-active{
+  background:transparent!important;
+  box-shadow:none!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-links a.is-active .grfuel-nav-icon{
+  color:#fff!important;
+}
+
+/* Collapse control behaves like a sidebar row, without a surrounding pill/card. */
+.grfuel-sidebar-toggle,
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle{
+  position:relative!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:0!important;
+  width:100%!important;
+  min-width:0!important;
+  height:42px!important;
+  margin:4px 0 0!important;
+  padding:0 12px!important;
+  border:0!important;
+  border-radius:10px!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  color:#aeb8c7!important;
+  overflow:hidden!important;
+  transform:none!important;
+}
+.grfuel-sidebar-toggle:hover,
+.grfuel-sidebar-toggle:focus-visible{
+  background:rgba(255,255,255,.07)!important;
+  color:#fff!important;
+  outline:none!important;
+}
+.grfuel-sidebar-toggle svg{
+  flex:0 0 18px!important;
+  width:18px!important;
+  height:18px!important;
+  margin:0!important;
+  transform:translateX(0)!important;
+  transition:transform .28s cubic-bezier(.2,.8,.2,1)!important;
+}
+.grfuel-sidebar-toggle>span{
+  display:block!important;
+  max-width:0!important;
+  margin-left:0!important;
+  overflow:hidden!important;
+  opacity:0!important;
+  white-space:nowrap!important;
+  font-size:12px!important;
+  font-weight:750!important;
+  transform:translateX(-7px)!important;
+  transition:max-width .28s ease,margin-left .28s ease,opacity .2s ease,transform .28s ease!important;
+}
+body:not(.grfuel-sidebar-collapsed) .grfuel-sidebar-toggle:hover svg,
+body:not(.grfuel-sidebar-collapsed) .grfuel-sidebar-toggle:focus-visible svg{
+  transform:translateX(-3px)!important;
+}
+body:not(.grfuel-sidebar-collapsed) .grfuel-sidebar-toggle:hover>span,
+body:not(.grfuel-sidebar-collapsed) .grfuel-sidebar-toggle:focus-visible>span{
+  max-width:90px!important;
+  margin-left:10px!important;
+  opacity:1!important;
+  transform:translateX(0)!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle{
+  justify-content:center!important;
+  padding:0!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle svg{
+  transform:rotate(180deg)!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle:hover svg,
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle:focus-visible svg{
+  transform:rotate(180deg) translateX(-3px)!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle>span{
+  display:none!important;
+}
+
+/* GRFuel Manager 4.0.2 — collapsed toggle alignment */
+.grfuel-sidebar-toggle:hover,
+.grfuel-sidebar-toggle:focus-visible,
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle:hover,
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle:focus-visible{
+  background:transparent!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle{
+  align-self:center!important;
+  width:42px!important;
+  min-width:42px!important;
+  max-width:42px!important;
+  margin:4px auto 0!important;
+  padding:0!important;
+  justify-content:center!important;
+}
+
+/* GRFuel Manager 4.0.3 — exact collapsed toggle alignment */
+.grfuel-sidebar-toggle:hover,
+.grfuel-sidebar-toggle:focus,
+.grfuel-sidebar-toggle:focus-visible,
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle:hover,
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle:focus,
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle:focus-visible{
+  background:none!important;
+  background-color:transparent!important;
+  box-shadow:none!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  min-height:42px!important;
+  height:42px!important;
+  margin:4px 0 0!important;
+  padding:0!important;
+  align-self:stretch!important;
+  justify-content:center!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-toggle svg{
+  display:block!important;
+  flex:0 0 18px!important;
+  width:18px!important;
+  height:18px!important;
+  margin:0!important;
+  transform-origin:50% 50%!important;
+}
+
+/* GRFuel Manager 4.0.4 — collapsed toggle follows the navigation icon column */
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar > .grfuel-sidebar-toggle{
+  position:static!important;
+  inset:auto!important;
+  left:auto!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:auto!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  flex:0 0 42px!important;
+  align-self:stretch!important;
+  width:100%!important;
+  min-width:100%!important;
+  max-width:100%!important;
+  height:42px!important;
+  margin:4px 0 0!important;
+  padding:0!important;
+  justify-content:center!important;
+  transform:none!important;
+  background:transparent!important;
+}
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar > .grfuel-sidebar-toggle:hover,
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar > .grfuel-sidebar-toggle:focus,
+body.grfuel-sidebar-collapsed .grfuel-app-sidebar > .grfuel-sidebar-toggle:focus-visible{
+  transform:none!important;
+  background:transparent!important;
+}
+
+/* Backup / Restore */
+.grfuel-backup-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px;align-items:start}.grfuel-backup-card{display:flex;flex-direction:column;gap:20px;padding:28px}.grfuel-backup-card h2{margin:4px 0 8px;font-size:24px}.grfuel-backup-card p{margin:0;color:#64748b;line-height:1.65}.grfuel-backup-icon{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:#eef2ff;color:#3157d5}.grfuel-backup-icon .dashicons{font-size:27px;width:27px;height:27px}.grfuel-backup-card.is-restore .grfuel-backup-icon{background:#fff1f2;color:#be123c}.grfuel-backup-card form{display:flex;flex-direction:column;align-items:flex-start;gap:16px}.grfuel-backup-file{width:100%;display:flex;flex-direction:column;gap:8px;font-weight:600}.grfuel-backup-file input{width:100%;box-sizing:border-box;padding:12px;border:1px solid #cbd5e1;border-radius:10px;background:#fff}.grfuel-backup-file small{font-weight:400;color:#64748b}.grfuel-backup-confirm{display:flex;gap:10px;align-items:flex-start;color:#334155;line-height:1.45}.grfuel-backup-confirm input{margin-top:3px}@media(max-width:960px){.grfuel-backup-grid{grid-template-columns:1fr}}
+
+/* GRFuel Manager 4.1.2 — prevent horizontal scrolling in the app sidebar */
+body.grfuel-app-mode .grfuel-app-sidebar{
+  box-sizing:border-box!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+}
+body.grfuel-app-mode .grfuel-app-sidebar > *,
+body.grfuel-app-mode .grfuel-sidebar-links,
+body.grfuel-app-mode .grfuel-sidebar-links a{
+  box-sizing:border-box!important;
+  max-width:100%!important;
+}
+.sfv-color-control .sfv-rgba-input{width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}.sfv-color-control>small{display:block;margin-top:2px;color:#8a93a6;font-size:10px;line-height:1.4}
+.sfv-color-control .sfv-rgba-input{width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}.sfv-color-control>small{display:block;margin-top:2px;color:#8a93a6;font-size:10px;line-height:1.4}
+
+/* 4.1.4 visual RGBA picker */
+.sfv-rgba-picker{--sfv-picker-color:#000;display:grid;gap:9px;width:100%}.sfv-rgba-picker-row{display:grid;grid-template-columns:52px minmax(0,1fr);gap:12px;align-items:center}.sfv-rgba-color{width:52px!important;height:42px!important;min-height:42px!important;padding:3px!important;border:1px solid #dfe4ed!important;border-radius:10px!important;background:#fff!important;cursor:pointer}.sfv-rgba-color::-webkit-color-swatch-wrapper{padding:0}.sfv-rgba-color::-webkit-color-swatch{border:0;border-radius:7px}.sfv-rgba-color::-moz-color-swatch{border:0;border-radius:7px}.sfv-rgba-opacity-wrap{display:grid;grid-template-columns:auto minmax(70px,1fr) 42px;align-items:center;gap:8px}.sfv-rgba-opacity-wrap>span{font-size:11px;font-weight:700;color:#6e7890}.sfv-rgba-opacity{width:100%;accent-color:#635bff}.sfv-rgba-opacity-wrap output{font-size:12px;font-weight:700;color:#26324d;text-align:right}.sfv-rgba-value{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace;font-size:12px}.sfv-rgba-picker:before{content:"";display:none;background:var(--sfv-picker-color)}@media(max-width:782px){.sfv-rgba-picker-row{grid-template-columns:48px minmax(0,1fr)}.sfv-rgba-opacity-wrap{grid-template-columns:1fr 42px}.sfv-rgba-opacity-wrap>span{grid-column:1/-1}}
+
+/* GRFuel logo refresh — 4.1.5 */
+.grfuel-sidebar-brand .grfuel-brand-icon{display:grid;place-items:center;width:48px;height:42px;flex:0 0 48px;border-radius:0;background:transparent;box-shadow:none}
+.grfuel-brand-icon svg{display:block;width:46px;height:auto;max-height:38px}
+body.grfuel-sidebar-collapsed .grfuel-sidebar-brand .grfuel-brand-icon{width:42px;height:38px;flex-basis:42px}
+body.grfuel-sidebar-collapsed .grfuel-brand-icon svg{width:40px;max-height:32px}
+
+/* GRFuel Manager 4.2.0 */
+body.grfuel-app-mode,
+body.grfuel-app-mode button,
+body.grfuel-app-mode input,
+body.grfuel-app-mode select,
+body.grfuel-app-mode textarea{font-family:"Geom",inherit,sans-serif!important}
+.grfuel-sidebar-foot{gap:7px!important}
+.grfuel-sidebar-foot>span{display:block;white-space:nowrap;font-weight:800}
+.grfuel-sidebar-foot a{display:block;color:rgba(255,255,255,.78);text-decoration:none}
+.grfuel-sidebar-foot .grfuel-developer-link{font-size:11px}
+.grfuel-sidebar-foot a:hover{color:#fff}
+.grfuel-mobile-burger,.grfuel-mobile-overlay{display:none}
+.grfuel-admin-order-panel{padding:24px}
+.grfuel-admin-form-picker{display:flex;align-items:end;gap:12px;margin-bottom:22px;padding-bottom:18px;border-bottom:1px solid #e5e7eb}
+.grfuel-admin-form-picker label{display:grid;gap:7px;min-width:min(420px,100%)}
+.grfuel-admin-form-picker label>span{font-weight:750}
+.grfuel-admin-form-picker select{width:100%;min-height:44px}
+.grfuel-admin-order-form{max-width:1100px}
+@media(max-width:782px){
+ body.grfuel-app-mode{padding-top:58px!important}
+ body.grfuel-app-mode .grfuel-app-sidebar{position:fixed!important;top:0!important;left:0!important;bottom:0!important;width:min(86vw,300px)!important;z-index:100002!important;transform:translateX(-105%)!important;transition:transform .25s ease!important;box-shadow:18px 0 48px rgba(15,23,42,.28)!important}
+ body.grfuel-app-mode.grfuel-mobile-menu-open .grfuel-app-sidebar{transform:translateX(0)!important}
+ body.grfuel-app-mode .grfuel-mobile-burger{display:grid;position:fixed;top:10px;left:12px;z-index:100004;width:42px;height:42px;place-content:center;gap:5px;border:0;border-radius:11px;background:#0e3e5f;box-shadow:0 8px 22px rgba(15,23,42,.22);cursor:pointer}
+ .grfuel-mobile-burger span{display:block;width:21px;height:2px;border-radius:2px;background:#fff;transition:transform .2s ease,opacity .2s ease}
+ body.grfuel-mobile-menu-open .grfuel-mobile-burger span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+ body.grfuel-mobile-menu-open .grfuel-mobile-burger span:nth-child(2){opacity:0}
+ body.grfuel-mobile-menu-open .grfuel-mobile-burger span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+ body.grfuel-app-mode .grfuel-mobile-overlay{display:block;position:fixed;inset:0;z-index:100001;border:0;background:rgba(2,8,23,.52);opacity:0;pointer-events:none;transition:opacity .2s ease}
+ body.grfuel-app-mode.grfuel-mobile-menu-open .grfuel-mobile-overlay{opacity:1;pointer-events:auto}
+ body.grfuel-app-mode .sfv-admin-page,body.grfuel-app-mode .grfuel-forms-page,body.grfuel-app-mode #wpbody-content{padding-left:14px!important;padding-right:14px!important;margin-left:0!important}
+ body.grfuel-app-mode .grfuel-sidebar-toggle{display:none!important}
+ .grfuel-admin-order-panel{padding:16px}
+ .grfuel-admin-form-picker{display:block}
+}
+
+
+/* GRFuel Manager 4.2.1 — sidebar footer refinement */
+.grfuel-sidebar-foot{display:flex!important;flex-direction:column!important;align-items:center!important;gap:0!important;text-align:center!important}
+.grfuel-sidebar-foot>span{margin:0!important;line-height:1.35!important}
+.grfuel-sidebar-foot .grfuel-developer-credit{color:rgba(255,255,255,.62)!important;font-size:11px!important;font-weight:400!important}
+.grfuel-sidebar-foot .grfuel-developer-link{display:inline!important;margin:0!important;padding:0!important;color:rgba(255,255,255,.78)!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;text-decoration:none!important;transition:color .16s ease!important}
+.grfuel-sidebar-foot .grfuel-developer-link:hover,.grfuel-sidebar-foot .grfuel-developer-link:focus{color:#fff!important;background:transparent!important;box-shadow:none!important;outline:0!important}
+.grfuel-sidebar-foot .grfuel-logout-link{display:inline-flex!important;align-items:center!important;justify-content:center!important;margin:12px auto 0!important;padding:0!important;color:rgba(255,255,255,.78)!important;background:transparent!important;border:0!important;box-shadow:none!important;text-decoration:none!important;transform:scale(1);transform-origin:center;transition:transform .16s ease,color .16s ease!important}
+.grfuel-sidebar-foot .grfuel-logout-link:hover,.grfuel-sidebar-foot .grfuel-logout-link:focus{color:rgba(255,255,255,.78)!important;background:transparent!important;box-shadow:none!important;outline:0!important;transform:scale(1.06)}
+
+
+/* GRFuel Manager 4.2.2 — standalone changelog */
+.grfuel-changelog-content{max-width:980px;margin:0 auto}
+.grfuel-changelog-content section>h3{margin-top:28px}
+
+/* GRFuel Manager 4.2.3 — admin order renderer, sticky mobile header and changelog refresh */
+.grfuel-admin-order-grid{
+  display:grid!important;
+  grid-template-columns:repeat(6,minmax(0,1fr));
+  gap:18px 20px;
+  margin:0!important;
+}
+.grfuel-admin-order-grid>.grfuel-admin-field{box-sizing:border-box;min-width:0;width:auto!important;margin:0!important;padding:0!important}
+.grfuel-admin-order-grid>.grfuel-admin-width-1-1{grid-column:span 6}
+.grfuel-admin-order-grid>.grfuel-admin-width-1-2{grid-column:span 3}
+.grfuel-admin-order-grid>.grfuel-admin-width-1-3{grid-column:span 2}
+.grfuel-admin-order-grid>.grfuel-admin-width-2-3{grid-column:span 4}
+.grfuel-admin-order-grid>.sfv-field[hidden]{display:none!important}
+.grfuel-admin-order-form .uk-form-label{display:block;margin:0 0 7px;font-weight:700;color:#26324d}
+.grfuel-admin-order-form .uk-input,
+.grfuel-admin-order-form .uk-select,
+.grfuel-admin-order-form .uk-textarea{box-sizing:border-box;width:100%}
+.grfuel-admin-order-submit{padding-top:4px!important}
+.grfuel-mobile-header{display:none}
+
+.grfuel-changelog-content{max-width:1040px;margin:0 auto;padding:0!important;overflow:hidden}
+.grfuel-changelog-shell{margin:0!important;padding:0!important}
+.grfuel-changelog-hero{display:flex;align-items:center;gap:20px;padding:30px 34px;background:linear-gradient(135deg,#0e3e5f,#15557d);color:#fff}
+.grfuel-changelog-hero>.dashicons{display:grid;place-items:center;width:54px;height:54px;font-size:28px;border-radius:16px;background:rgba(255,255,255,.12);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.grfuel-changelog-hero small{display:block;margin-bottom:3px;color:rgba(255,255,255,.68);font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase}
+.grfuel-changelog-hero h2{margin:0;color:#fff;font-size:27px;line-height:1.15}
+.grfuel-changelog-hero p{margin:7px 0 0;color:rgba(255,255,255,.76);font-size:14px}
+.grfuel-changelog-timeline{position:relative;padding:30px 34px 18px;background:#fff}
+.grfuel-changelog-timeline:before{content:"";position:absolute;top:38px;bottom:30px;left:66px;width:2px;background:#e5eaf1}
+.grfuel-changelog-release{position:relative;display:grid;grid-template-columns:92px minmax(0,1fr);gap:22px;padding:0 0 28px;margin:0!important}
+.grfuel-changelog-release:last-child{padding-bottom:8px}
+.grfuel-changelog-version{position:relative;z-index:1;align-self:start;text-align:center}
+.grfuel-changelog-version:before{content:"";display:block;width:12px;height:12px;margin:8px auto 9px;border:4px solid #fff;border-radius:50%;background:#9aa7b7;box-shadow:0 0 0 2px #dbe2ea}
+.grfuel-changelog-version strong{display:inline-block;padding:5px 9px;border-radius:8px;background:#f3f6f9;color:#26324d;font-size:13px;line-height:1}
+.grfuel-changelog-version span{display:block;margin-top:7px;color:#961b1e;font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.05em}
+.grfuel-changelog-release ul{margin:0;padding:19px 22px 17px 40px;border:1px solid #e6eaf0;border-radius:14px;background:#fbfcfd;box-shadow:0 7px 22px rgba(15,23,42,.045)}
+.grfuel-changelog-release li{margin:0 0 8px;color:#4a5568;line-height:1.55}
+.grfuel-changelog-release li:last-child{margin-bottom:0}
+.grfuel-changelog-release.is-latest ul{border-color:rgba(150,27,30,.22);background:linear-gradient(135deg,rgba(200,33,39,.055),rgba(14,62,95,.035))}
+.grfuel-changelog-release.is-latest .grfuel-changelog-version:before{background:#c82127;box-shadow:0 0 0 2px rgba(200,33,39,.2)}
+.grfuel-changelog-release.is-latest .grfuel-changelog-version strong{background:#c82127;color:#fff}
+.grfuel-changelog-note{margin:0!important;padding:17px 34px 22px;border-top:1px solid #edf0f4;background:#fafbfc;color:#7a8495;font-size:12px}
+
+@media(max-width:782px){
+ body.grfuel-app-mode{padding-top:70px!important}
+ body.grfuel-app-mode .grfuel-mobile-header{display:flex;position:fixed;z-index:100003;top:0;left:0;right:0;height:60px;box-sizing:border-box;align-items:center;justify-content:space-between;padding:7px 12px 7px 15px;background:rgba(255,255,255,.96);border-bottom:1px solid rgba(14,62,95,.12);box-shadow:0 5px 18px rgba(15,23,42,.09);backdrop-filter:blur(12px)}
+ .grfuel-mobile-brand{display:flex;align-items:center;gap:10px;color:#0e3e5f}
+ .grfuel-mobile-brand .grfuel-brand-icon{display:grid;width:43px;height:40px;place-items:center;flex:0 0 43px}
+ .grfuel-mobile-brand .grfuel-brand-icon svg{width:40px;max-height:34px}
+ .grfuel-mobile-brand strong{font-size:15px;letter-spacing:-.01em}
+ body.grfuel-app-mode .grfuel-mobile-burger{position:relative!important;display:grid;top:auto!important;left:auto!important;z-index:auto!important;width:42px;height:42px;margin:0;place-content:center;gap:5px;border:0;border-radius:11px;background:#0e3e5f;box-shadow:none;cursor:pointer}
+ body.grfuel-app-mode .grfuel-app-sidebar{top:0!important}
+ .grfuel-admin-order-grid{grid-template-columns:1fr;gap:16px}
+ .grfuel-admin-order-grid>.grfuel-admin-field{grid-column:1!important}
+ .grfuel-changelog-hero{padding:24px 20px;gap:14px}
+ .grfuel-changelog-hero>.dashicons{width:46px;height:46px;font-size:24px;border-radius:13px}
+ .grfuel-changelog-hero h2{font-size:23px}
+ .grfuel-changelog-hero p{font-size:13px}
+ .grfuel-changelog-timeline{padding:24px 16px 12px}
+ .grfuel-changelog-timeline:before{left:31px}
+ .grfuel-changelog-release{grid-template-columns:31px minmax(0,1fr);gap:12px;padding-bottom:20px}
+ .grfuel-changelog-version{width:31px}
+ .grfuel-changelog-version:before{margin:7px auto 0}
+ .grfuel-changelog-version strong{position:absolute;top:0;left:43px;transform:translateY(-1px);white-space:nowrap}
+ .grfuel-changelog-version span{display:none}
+ .grfuel-changelog-release ul{padding:48px 17px 16px 32px;border-radius:12px}
+ .grfuel-changelog-note{padding:15px 18px 19px}
+}
+
+
+/* GRFuel Manager 4.2.4 — complete mobile off-canvas navigation and full-width changelog */
+.grfuel-changelog-content{
+  box-sizing:border-box!important;
+  width:100%!important;
+  max-width:none!important;
+  margin:0!important;
+  border-radius:18px!important;
+}
+.grfuel-changelog-shell{width:100%!important}
+.grfuel-changelog-hero{position:relative;overflow:hidden}
+.grfuel-changelog-hero:after{
+  content:"";
+  position:absolute;
+  width:240px;
+  height:240px;
+  right:-80px;
+  bottom:-145px;
+  border-radius:50%;
+  background:rgba(255,255,255,.07);
+}
+.grfuel-changelog-release ul{transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+.grfuel-changelog-release:hover ul{transform:translateY(-2px);border-color:#d7dee8;box-shadow:0 12px 28px rgba(15,23,42,.075)}
+.grfuel-changelog-release.is-latest ul{box-shadow:0 12px 30px rgba(150,27,30,.08)}
+
+@media(max-width:782px){
+  body.grfuel-app-mode .grfuel-mobile-header{
+    width:100vw!important;
+    max-width:100%!important;
+    overflow:hidden!important;
+    padding-left:max(12px,env(safe-area-inset-left))!important;
+    padding-right:max(12px,env(safe-area-inset-right))!important;
+  }
+  body.grfuel-app-mode .grfuel-mobile-brand{min-width:0;flex:1 1 auto;overflow:hidden}
+  body.grfuel-app-mode .grfuel-mobile-brand strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  body.grfuel-app-mode .grfuel-mobile-burger{
+    flex:0 0 42px!important;
+    min-width:42px!important;
+    max-width:42px!important;
+    right:auto!important;
+    transform:none!important;
+  }
+  body.grfuel-app-mode .grfuel-app-sidebar,
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar{
+    width:min(86vw,300px)!important;
+    padding-left:16px!important;
+    padding-right:16px!important;
+  }
+  body.grfuel-app-mode .grfuel-app-sidebar .grfuel-sidebar-brand,
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-sidebar-brand{
+    justify-content:flex-start!important;
+  }
+  body.grfuel-app-mode .grfuel-app-sidebar .grfuel-sidebar-brand>div,
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-sidebar-brand>div,
+  body.grfuel-app-mode .grfuel-app-sidebar .grfuel-nav-label,
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-nav-label{
+    display:block!important;
+  }
+  body.grfuel-app-mode .grfuel-app-sidebar .grfuel-sidebar-links a,
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-sidebar-links a{
+    justify-content:flex-start!important;
+    width:100%!important;
+    padding-left:12px!important;
+    padding-right:12px!important;
+  }
+  body.grfuel-app-mode .grfuel-app-sidebar .grfuel-nav-icon,
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-nav-icon{
+    display:inline-grid!important;
+    flex:0 0 30px!important;
+  }
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar .grfuel-order-badge{
+    position:static!important;
+    margin-left:auto!important;
+  }
+  body.grfuel-app-mode .grfuel-sidebar-foot,
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-sidebar-foot{display:flex!important}
+  .grfuel-changelog-content{border-radius:14px!important}
+  .grfuel-changelog-release:hover ul{transform:none}
+}
+
+/* GRFuel Manager 4.2.5 — reference-style mobile navigation and refined changelog */
+.grfuel-mobile-menu-close{display:none}
+
+/* Timeline: the line passes exactly through each marker; versions are plain text. */
+.grfuel-changelog-timeline{--grfuel-timeline-x:66px}
+.grfuel-changelog-timeline:before{left:var(--grfuel-timeline-x)!important;transform:translateX(-50%)}
+.grfuel-changelog-release{grid-template-columns:64px minmax(0,1fr)!important;gap:24px!important}
+.grfuel-changelog-version{width:64px!important;min-height:30px;text-align:left!important}
+.grfuel-changelog-version:before{position:absolute!important;top:7px!important;left:var(--grfuel-timeline-x)!important;width:12px!important;height:12px!important;margin:0!important;transform:translateX(calc(-50% - 34px));box-sizing:content-box}
+.grfuel-changelog-version strong{display:block!important;margin:5px 0 0 47px!important;padding:0!important;border:0!important;border-radius:0!important;background:transparent!important;color:#26324d!important;font-size:14px!important;line-height:1.2!important;white-space:nowrap}
+.grfuel-changelog-version span{margin:5px 0 0 47px!important;white-space:nowrap}
+.grfuel-changelog-release.is-latest .grfuel-changelog-version strong{background:transparent!important;color:#c82127!important}
+.grfuel-changelog-release ul{padding-left:24px!important}
+
+@media(max-width:782px){
+  body.grfuel-app-mode{padding-top:64px!important;overflow-x:hidden}
+  body.grfuel-app-mode .grfuel-mobile-header{
+    position:fixed!important;top:0!important;left:0!important;right:0!important;z-index:100004!important;
+    width:100%!important;height:58px!important;display:flex!important;align-items:center!important;justify-content:center!important;
+    padding:0 58px!important;box-sizing:border-box!important;background:#0e3e5f!important;color:#fff!important;
+    border:0!important;box-shadow:0 3px 14px rgba(14,62,95,.28)!important;overflow:visible!important;
+  }
+  body.admin-bar.grfuel-app-mode .grfuel-mobile-header{top:46px!important}
+  body.admin-bar.grfuel-app-mode{padding-top:110px!important}
+  body.grfuel-app-mode .grfuel-mobile-brand{display:flex!important;align-items:center!important;justify-content:center!important;gap:9px!important;min-width:0!important;color:#fff!important}
+  body.grfuel-app-mode .grfuel-mobile-brand .grfuel-brand-icon{width:38px!important;height:36px!important;flex:0 0 38px!important}
+  body.grfuel-app-mode .grfuel-mobile-brand .grfuel-brand-icon svg{width:36px!important;max-height:31px!important}
+  body.grfuel-app-mode .grfuel-mobile-brand .grfuel-brand-icon svg path[fill="#0e3e5f"]{fill:#fff!important}
+  body.grfuel-app-mode .grfuel-mobile-brand strong{font-size:15px!important;color:#fff!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  body.grfuel-app-mode .grfuel-mobile-burger{
+    position:absolute!important;top:8px!important;left:max(10px,env(safe-area-inset-left))!important;right:auto!important;z-index:1!important;
+    width:42px!important;min-width:42px!important;max-width:42px!important;height:42px!important;margin:0!important;padding:0!important;
+    display:flex!important;align-items:center!important;justify-content:center!important;flex-direction:column!important;gap:5px!important;
+    border:0!important;border-radius:10px!important;background:transparent!important;color:#fff!important;box-shadow:none!important;transform:none!important;
+  }
+  body.grfuel-app-mode .grfuel-mobile-burger:hover,body.grfuel-app-mode .grfuel-mobile-burger:focus-visible{background:rgba(255,255,255,.13)!important;outline:0!important}
+  body.grfuel-mobile-menu-open .grfuel-mobile-burger span:nth-child(1),body.grfuel-mobile-menu-open .grfuel-mobile-burger span:nth-child(3){transform:none!important}
+  body.grfuel-mobile-menu-open .grfuel-mobile-burger span:nth-child(2){opacity:1!important}
+  body.grfuel-app-mode .grfuel-app-sidebar,body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar{
+    top:0!important;bottom:0!important;left:0!important;z-index:100006!important;width:min(82vw,310px)!important;height:100vh!important;
+    padding:64px 14px 18px!important;transform:translateX(-105%)!important;transition:transform .24s cubic-bezier(.2,.8,.2,1)!important;
+    box-shadow:18px 0 45px rgba(0,0,0,.24)!important;overflow-y:auto!important;
+  }
+  body.admin-bar.grfuel-app-mode .grfuel-app-sidebar{top:46px!important;height:calc(100vh - 46px)!important}
+  body.grfuel-app-mode.grfuel-mobile-menu-open .grfuel-app-sidebar{transform:translateX(0)!important}
+  body.grfuel-app-mode .grfuel-mobile-menu-close{position:absolute;display:grid;place-items:center;top:12px;right:12px;z-index:2;width:40px;height:40px;padding:0;border:1px solid rgba(255,255,255,.2);border-radius:50%;background:rgba(255,255,255,.08);color:#fff;cursor:pointer}
+  body.grfuel-app-mode .grfuel-mobile-menu-close:hover,body.grfuel-app-mode .grfuel-mobile-menu-close:focus-visible{background:rgba(255,255,255,.16);outline:0}
+  body.grfuel-app-mode .grfuel-mobile-menu-close .dashicons{width:22px;height:22px;font-size:22px;line-height:22px}
+  body.grfuel-app-mode .grfuel-mobile-overlay{z-index:100005!important}
+  body.grfuel-mobile-menu-open{overflow:hidden!important}
+  body.grfuel-app-mode .grfuel-app-sidebar .grfuel-sidebar-brand{padding-right:48px!important}
+
+  .grfuel-changelog-timeline{--grfuel-timeline-x:25px;padding:24px 14px 12px!important}
+  .grfuel-changelog-release{grid-template-columns:50px minmax(0,1fr)!important;gap:10px!important;padding-bottom:22px!important}
+  .grfuel-changelog-version{width:50px!important}
+  .grfuel-changelog-version:before{left:25px!important;transform:translateX(-50%)!important}
+  .grfuel-changelog-version strong{position:static!important;margin:5px 0 0 38px!important;transform:none!important;font-size:13px!important}
+  .grfuel-changelog-version span{display:none!important}
+  .grfuel-changelog-release ul{padding:18px 15px 16px 24px!important}
+}
+
+
+/* GRFuel Manager 4.2.6 — true top mobile header and full-height off-canvas */
+@media(max-width:782px){
+  body.grfuel-app-mode,
+  body.admin-bar.grfuel-app-mode{
+    padding-top:64px!important;
+  }
+  body.grfuel-app-mode .grfuel-mobile-header,
+  body.admin-bar.grfuel-app-mode .grfuel-mobile-header{
+    top:0!important;
+    height:58px!important;
+    padding-top:env(safe-area-inset-top,0px)!important;
+    min-height:calc(58px + env(safe-area-inset-top,0px))!important;
+  }
+  body.grfuel-app-mode .grfuel-app-sidebar,
+  body.admin-bar.grfuel-app-mode .grfuel-app-sidebar,
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar{
+    top:0!important;
+    bottom:auto!important;
+    height:100vh!important;
+    height:100svh!important;
+    height:100dvh!important;
+    min-height:100vh!important;
+    max-height:none!important;
+    box-sizing:border-box!important;
+    padding-top:calc(64px + env(safe-area-inset-top,0px))!important;
+    padding-bottom:calc(18px + env(safe-area-inset-bottom,0px))!important;
+  }
+}
+
+
+/* GRFuel Manager 4.2.8 — Geom typography and mobile width containment */
+body.grfuel-app-mode,
+body.grfuel-app-mode button,
+body.grfuel-app-mode input,
+body.grfuel-app-mode select,
+body.grfuel-app-mode textarea,
+body.grfuel-app-mode table,
+body.grfuel-app-mode .ui-widget {
+  font-family:"Geom",sans-serif!important;
+  font-optical-sizing:auto;
+}
+
+@media(max-width:782px){
+  html:has(body.grfuel-app-mode),
+  body.grfuel-app-mode{
+    width:100%!important;
+    max-width:100%!important;
+    overflow-x:hidden!important;
+  }
+  body.grfuel-app-mode #wpwrap,
+  body.grfuel-app-mode #wpcontent,
+  body.grfuel-app-mode #wpbody,
+  body.grfuel-app-mode #wpbody-content,
+  body.grfuel-app-mode .sfv-admin-page,
+  body.grfuel-app-mode .grfuel-forms-page,
+  body.grfuel-app-mode .sfv-inline-nav,
+  body.grfuel-app-mode .grfuel-mobile-header,
+  body.grfuel-app-mode .sfv-section-intro,
+  body.grfuel-app-mode .grfuel-panel,
+  body.grfuel-app-mode .grfuel-changelog-content{
+    box-sizing:border-box!important;
+    width:100%!important;
+    max-width:100%!important;
+    min-width:0!important;
+  }
+  body.grfuel-app-mode #wpcontent,
+  body.grfuel-app-mode #wpbody,
+  body.grfuel-app-mode #wpbody-content{
+    margin-left:0!important;
+  }
+  body.grfuel-app-mode #wpbody-content{
+    padding-left:12px!important;
+    padding-right:12px!important;
+  }
+  body.grfuel-app-mode .sfv-admin-page,
+  body.grfuel-app-mode .grfuel-forms-page,
+  body.grfuel-app-mode .sfv-inline-nav{
+    margin-left:0!important;
+    margin-right:0!important;
+    padding-left:0!important;
+    padding-right:0!important;
+  }
+  body.grfuel-app-mode .grfuel-mobile-header{
+    left:0!important;
+    right:0!important;
+    width:auto!important;
+    max-width:none!important;
+  }
+  body.grfuel-app-mode img,
+  body.grfuel-app-mode svg,
+  body.grfuel-app-mode canvas,
+  body.grfuel-app-mode table{
+    max-width:100%;
+  }
+  body.grfuel-app-mode .grfuel-app-sidebar,
+  body.grfuel-app-mode.grfuel-sidebar-collapsed .grfuel-app-sidebar{
+    max-width:calc(100vw - env(safe-area-inset-right,0px))!important;
+  }
+}
+
+/* OneSignal admin-only mobile push */
+.grfuel-push-panel{grid-column:1/-1;border:1px solid var(--sfv-border,#dfe5ef);border-radius:18px;padding:20px;background:rgba(255,255,255,.6);display:grid;gap:16px;max-width:100%;box-sizing:border-box}.grfuel-push-panel-head,.grfuel-push-panel-head>div,.grfuel-push-device-status{display:flex;align-items:center;gap:12px}.grfuel-push-panel-head{justify-content:space-between}.grfuel-push-panel-head .dashicons{width:38px;height:38px;display:grid;place-items:center;border-radius:12px;background:#111827;color:#fff;font-size:20px}.grfuel-push-panel-head small,.grfuel-push-device-status small{display:block;margin-top:3px}.grfuel-push-badge{font-size:12px;font-weight:700;padding:6px 10px;border-radius:999px;background:#eef2ff;color:#4338ca}.grfuel-push-credentials{margin:0}.grfuel-push-device-status{padding:14px;border:1px solid var(--sfv-border,#dfe5ef);border-radius:14px;background:#fff}.grfuel-push-device-status.is-ready .grfuel-browser-status-dot{background:#16a34a;box-shadow:0 0 0 5px rgba(22,163,74,.12)}.grfuel-push-device-status.is-error .grfuel-browser-status-dot{background:#dc2626;box-shadow:0 0 0 5px rgba(220,38,38,.12)}.grfuel-push-device-status.is-loading .grfuel-browser-status-dot{animation:grfuelPushPulse 1s infinite alternate}@keyframes grfuelPushPulse{to{transform:scale(1.35);opacity:.5}}@media(max-width:782px){.grfuel-push-panel{padding:15px}.grfuel-push-panel-head{align-items:flex-start}.grfuel-push-badge{flex:none}.grfuel-push-panel .grfuel-browser-notification-actions{display:grid;grid-template-columns:1fr}.grfuel-push-panel .sfv-btn{width:100%;justify-content:center}}
+
+
+/* GRFuel Manager 4.3.0 — persistent light/dark form preview and mobile checkbox geometry */
+.sfv-settings-preview-heading{gap:12px;flex-wrap:wrap}
+.sfv-preview-theme-switch{display:inline-flex;align-items:center;gap:3px;padding:3px;border:1px solid #dfe5ee;border-radius:10px;background:#f3f5f9}
+.sfv-preview-theme-switch label{display:inline-flex;align-items:center;gap:5px;min-height:30px;padding:5px 8px;border-radius:7px;color:#68738a;font-size:11px;font-weight:700;cursor:pointer;transition:background-color .18s ease,color .18s ease,box-shadow .18s ease}
+.sfv-preview-theme-switch label.is-active{background:#fff;color:#202840;box-shadow:0 1px 4px rgba(24,35,58,.12)}
+.sfv-preview-theme-switch input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none}
+.sfv-preview-theme-switch .dashicons{width:14px;height:14px;font-size:14px}
+.sfv-live-preview{transition:background-color .2s ease,border-color .2s ease,box-shadow .2s ease}
+.sfv-live-preview.is-light{background:linear-gradient(180deg,#fff,#fafbfe);border-color:#e5e9f1}
+.sfv-live-preview.is-dark{background:linear-gradient(180deg,#242b38,#171d28);border-color:#303a4a;box-shadow:inset 0 1px 0 rgba(255,255,255,.04)}
+.sfv-live-preview.is-dark .sfv-preview-caption{color:#aab3c2}
+.grfuel-push-panel .grfuel-toggle-card input[type="checkbox"]{box-sizing:border-box!important;display:block!important;flex:0 0 18px!important;width:18px!important;min-width:18px!important;max-width:18px!important;height:18px!important;min-height:18px!important;max-height:18px!important;margin:3px 0 0!important;padding:0!important;border-radius:4px!important;aspect-ratio:1/1!important;line-height:18px!important}
+@media(max-width:782px){.sfv-settings-preview-heading{align-items:stretch}.sfv-preview-theme-switch{width:100%;box-sizing:border-box}.sfv-preview-theme-switch label{flex:1;justify-content:center}.grfuel-push-panel .grfuel-toggle-card input[type="checkbox"]{flex-basis:20px!important;width:20px!important;min-width:20px!important;max-width:20px!important;height:20px!important;min-height:20px!important;max-height:20px!important}}
+
+/* 4.3.1 PDF watermark, Acrobat icon and Suite-style changelog */
+.sfv-watermark-opacity input[type="range"]{width:100%;max-width:520px;accent-color:#c82127}
+.sfv-watermark-opacity strong{margin-left:8px;color:#c82127}
+.sfv-acrobat-icon{display:block;width:20px;height:20px;color:#e3262e;flex:0 0 20px}
+.sfv-btn .sfv-acrobat-icon{width:18px;height:18px;color:currentColor}
+.sfv-icon-action .sfv-acrobat-icon{width:21px;height:21px}
+
+.grfuel-changelog-content{padding:0!important;background:transparent!important;border:0!important;box-shadow:none!important}
+.grfuel-changelog-shell{display:grid;gap:18px}
+.grfuel-changelog-timeline{display:grid!important;gap:14px!important;padding:0!important;background:transparent!important}
+.grfuel-changelog-timeline:before,.grfuel-changelog-version:before{display:none!important}
+.grfuel-changelog-release{display:grid!important;grid-template-columns:90px minmax(0,1fr)!important;gap:18px!important;padding:22px!important;margin:0!important;background:#fff!important;border:1px solid #dfe6e2!important;border-radius:15px!important;box-shadow:none!important}
+.grfuel-changelog-version{position:static!important;width:auto!important;min-height:0!important;text-align:left!important}
+.grfuel-changelog-version strong{position:static!important;display:inline-grid!important;place-items:center!important;margin:0!important;padding:8px 10px!important;transform:none!important;border:0!important;border-radius:999px!important;background:#e8f6ed!important;color:#277744!important;font-size:14px!important;font-weight:850!important;line-height:1.2!important;white-space:nowrap!important}
+.grfuel-changelog-release.is-latest .grfuel-changelog-version strong{background:#feecee!important;color:#c82127!important}
+.grfuel-changelog-version span{display:block!important;margin:8px 0 0!important;color:#778197!important;font-size:11px!important;line-height:1.35!important;white-space:normal!important}
+.grfuel-changelog-release ul{margin:0!important;padding:0 0 0 20px!important;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;transform:none!important}
+.grfuel-changelog-release li{color:#5f6d65;line-height:1.7}
+.grfuel-changelog-release:hover{border-color:#cfd9d3!important;box-shadow:0 10px 24px rgba(15,23,42,.055)!important}
+.grfuel-changelog-release:hover ul{transform:none!important;box-shadow:none!important}
+@media(max-width:700px){.grfuel-changelog-release{grid-template-columns:1fr!important;gap:12px!important;padding:18px!important}.grfuel-changelog-version span{display:inline-block!important;margin:0 0 0 8px!important}.grfuel-changelog-release ul{padding-left:18px!important}}
+
+
+/* GRFuel Manager 4.3.9 — manual order parity with the public form. */
+.grfuel-admin-order-form .sfv-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;white-space:nowrap!important;border:0!important}
+.grfuel-admin-order-form .uk-input,.grfuel-admin-order-form .uk-select,.grfuel-admin-order-form .sfv-date-wrap{min-height:44px}
+.grfuel-admin-order-form .sfv-date-wrap .uk-input{height:44px!important}
+.grfuel-admin-order-form .sfv-input-affix{display:block}
+.grfuel-admin-order-form .sfv-input-affix .uk-input{border-radius:10px!important}
+.grfuel-admin-order-form .sfv-input-suffix:empty{display:none!important}
+.grfuel-admin-order-form .sfv-radio-group{margin:0}
+.grfuel-admin-order-form .sfv-radio-group legend{margin-bottom:10px}
+
+/* jQuery UI datepicker used by New Order. */
+.ui-datepicker{z-index:100100!important;width:290px;padding:12px;border:1px solid #d9e1ec;border-radius:14px;background:#fff;box-shadow:0 18px 50px rgba(15,23,42,.18);font-family:"Geom",sans-serif}
+.ui-datepicker .ui-datepicker-header{position:relative;display:flex;align-items:center;justify-content:center;padding:4px 38px 10px;border:0;background:transparent}
+.ui-datepicker .ui-datepicker-title{font-weight:800;color:#17233a}
+.ui-datepicker .ui-datepicker-prev,.ui-datepicker .ui-datepicker-next{position:absolute;top:1px;display:grid;place-items:center;width:32px;height:32px;border-radius:9px;cursor:pointer;color:#36516f}
+.ui-datepicker .ui-datepicker-prev{left:0}.ui-datepicker .ui-datepicker-next{right:0}
+.ui-datepicker .ui-datepicker-prev:before{content:"‹"}.ui-datepicker .ui-datepicker-next:before{content:"›"}
+.ui-datepicker .ui-icon{display:none}
+.ui-datepicker table{width:100%;border-collapse:separate;border-spacing:3px;margin:0}
+.ui-datepicker th{padding:5px 0;color:#718096;font-size:11px;font-weight:800;text-align:center}
+.ui-datepicker td{padding:0}
+.ui-datepicker td a,.ui-datepicker td span{display:grid;place-items:center;min-height:34px;border-radius:9px;color:#26324d;text-decoration:none}
+.ui-datepicker td a:hover{background:#edf4ff;color:#1e5dc8}
+.ui-datepicker .ui-datepicker-current-day a{background:#2f6fed;color:#fff}
+.ui-datepicker .ui-datepicker-today a{box-shadow:inset 0 0 0 1px #2f6fed}
+.ui-datepicker .ui-state-disabled span{opacity:.35}
+
+
+/* GRFuel Manager 4.3.10 — consistent New Order controls */
+.grfuel-admin-order-form .uk-input,
+.grfuel-admin-order-form input[type="text"],
+.grfuel-admin-order-form input[type="email"],
+.grfuel-admin-order-form input[type="tel"],
+.grfuel-admin-order-form input[type="number"],
+.grfuel-admin-order-form .uk-select,
+.grfuel-admin-order-form select,
+.grfuel-admin-order-form .sfv-date-wrap,
+.grfuel-admin-order-form .sfv-input-affix{
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  height:44px!important;
+  min-height:44px!important;
+  max-height:44px!important;
+  margin:0!important;
+  border-radius:10px!important;
+}
+.grfuel-admin-order-form input[type="email"],
+.grfuel-admin-order-form input[type="tel"]{
+  padding:0 13px!important;
+  border:1px solid #d8e0eb!important;
+  background:#fff!important;
+  color:#26324d!important;
+  box-shadow:none!important;
+  line-height:42px!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+}
+.grfuel-admin-order-form input[type="email"]:focus,
+.grfuel-admin-order-form input[type="tel"]:focus{
+  border-color:#5a4cff!important;
+  outline:0!important;
+  box-shadow:0 0 0 3px rgba(90,76,255,.12)!important;
+}
+.grfuel-admin-order-form .uk-select,
+.grfuel-admin-order-form select{
+  padding-top:0!important;
+  padding-bottom:0!important;
+  line-height:42px!important;
+}
+.grfuel-admin-order-form .sfv-input-affix{
+  display:flex!important;
+  align-items:stretch!important;
+  overflow:hidden!important;
+  border:0!important;
+}
+.grfuel-admin-order-form .sfv-input-affix>.uk-input{
+  height:44px!important;
+  min-height:44px!important;
+  max-height:44px!important;
+  border-radius:10px!important;
+}
+.grfuel-admin-order-form .sfv-date-wrap>.uk-input{
+  height:44px!important;
+  min-height:44px!important;
+  max-height:44px!important;
+  padding-right:44px!important;
+}
+.grfuel-admin-order-form .sfv-input-suffix{display:none!important}
+.grfuel-admin-order-save{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:8px!important;
+  min-height:44px!important;
+  padding:10px 18px!important;
+  border:1px solid #5848f5!important;
+  border-radius:10px!important;
+  background:linear-gradient(135deg,#6d5dfc,#5545ed)!important;
+  color:#fff!important;
+  font-weight:800!important;
+  line-height:1.2!important;
+  text-decoration:none!important;
+  box-shadow:0 8px 20px rgba(88,72,245,.22)!important;
+  cursor:pointer!important;
+  transition:transform .16s ease,box-shadow .16s ease,filter .16s ease!important;
+}
+.grfuel-admin-order-save:hover,
+.grfuel-admin-order-save:focus-visible{
+  color:#fff!important;
+  filter:brightness(1.05)!important;
+  transform:translateY(-1px)!important;
+  box-shadow:0 11px 24px rgba(88,72,245,.3)!important;
+  outline:0!important;
+}
+.grfuel-admin-order-save:active{transform:translateY(0)!important}
+.grfuel-admin-order-save .dashicons{width:18px!important;height:18px!important;font-size:18px!important;line-height:18px!important}
+
+
+/* GRFuel Manager 4.3.11 — force email and telephone controls to match every other New Order input. */
+#wpwrap .grfuel-new-order-page .grfuel-admin-order-form input.uk-input[type="email"],
+#wpwrap .grfuel-new-order-page .grfuel-admin-order-form input.uk-input[type="tel"]{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  height:44px!important;
+  min-height:44px!important;
+  max-height:44px!important;
+  margin:0!important;
+  padding:0 13px!important;
+  border:1px solid #d8e0eb!important;
+  border-radius:10px!important;
+  background-color:#fff!important;
+  background-image:none!important;
+  color:#26324d!important;
+  font-family:inherit!important;
+  font-size:14px!important;
+  font-weight:400!important;
+  line-height:42px!important;
+  box-shadow:none!important;
+  outline:0!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+}
+#wpwrap .grfuel-new-order-page .grfuel-admin-order-form input.uk-input[type="email"]::placeholder,
+#wpwrap .grfuel-new-order-page .grfuel-admin-order-form input.uk-input[type="tel"]::placeholder{
+  color:#7f899a!important;
+  opacity:1!important;
+}
+#wpwrap .grfuel-new-order-page .grfuel-admin-order-form input.uk-input[type="email"]:hover,
+#wpwrap .grfuel-new-order-page .grfuel-admin-order-form input.uk-input[type="tel"]:hover{
+  border-color:#bcc8d8!important;
+}
+#wpwrap .grfuel-new-order-page .grfuel-admin-order-form input.uk-input[type="email"]:focus,
+#wpwrap .grfuel-new-order-page .grfuel-admin-order-form input.uk-input[type="tel"]:focus{
+  border-color:#5a4cff!important;
+  background-color:#fff!important;
+  color:#26324d!important;
+  box-shadow:0 0 0 3px rgba(90,76,255,.12)!important;
+}
+
+
+/* GRFuel Manager 4.3.12 — exact parity for native email/tel controls in New Order. */
+body.wp-admin #wpwrap #wpbody #wpbody-content .grfuel-new-order-page form.grfuel-admin-order-form input[type="email"],
+body.wp-admin #wpwrap #wpbody #wpbody-content .grfuel-new-order-page form.grfuel-admin-order-form input[type="tel"]{
+  display:block!important;
+  box-sizing:border-box!important;
+  width:100%!important;
+  min-width:0!important;
+  height:44px!important;
+  min-height:44px!important;
+  max-height:44px!important;
+  margin:0!important;
+  padding:0 13px!important;
+  border-width:1px!important;
+  border-style:solid!important;
+  border-color:var(--sfv-field-border,#d8e0eb)!important;
+  border-radius:10px!important;
+  background:var(--sfv-field-bg,#fff)!important;
+  color:var(--sfv-field-text,#26324d)!important;
+  font:inherit!important;
+  font-size:14px!important;
+  line-height:42px!important;
+  box-shadow:none!important;
+  outline:0!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  background-clip:padding-box!important;
+}
+body.wp-admin #wpwrap #wpbody #wpbody-content .grfuel-new-order-page form.grfuel-admin-order-form input[type="email"]::placeholder,
+body.wp-admin #wpwrap #wpbody #wpbody-content .grfuel-new-order-page form.grfuel-admin-order-form input[type="tel"]::placeholder{
+  color:var(--sfv-placeholder-color,#7f899a)!important;
+  opacity:1!important;
+}
+body.wp-admin #wpwrap #wpbody #wpbody-content .grfuel-new-order-page form.grfuel-admin-order-form input[type="email"]:hover,
+body.wp-admin #wpwrap #wpbody #wpbody-content .grfuel-new-order-page form.grfuel-admin-order-form input[type="tel"]:hover{
+  border-color:var(--sfv-field-hover-border,var(--sfv-field-border,#bcc8d8))!important;
+  background:var(--sfv-field-hover-bg,var(--sfv-field-bg,#fff))!important;
+  color:var(--sfv-field-hover-text,var(--sfv-field-text,#26324d))!important;
+}
+body.wp-admin #wpwrap #wpbody #wpbody-content .grfuel-new-order-page form.grfuel-admin-order-form input[type="email"]:focus,
+body.wp-admin #wpwrap #wpbody #wpbody-content .grfuel-new-order-page form.grfuel-admin-order-form input[type="tel"]:focus{
+  border-color:var(--sfv-field-focus,#5a4cff)!important;
+  background:var(--sfv-field-focus-bg,var(--sfv-field-bg,#fff))!important;
+  color:var(--sfv-field-focus-text,var(--sfv-field-text,#26324d))!important;
+  box-shadow:0 0 0 3px var(--sfv-field-focus-outline,rgba(90,76,255,.12))!important;
+}
+
+
+/* GRFuel Manager 4.3.14: informational-only radio option. */
+.sfv-message-only-hidden{display:none!important}
+.sfv-message-only-notice{margin-top:18px;padding:18px 20px;border:1px solid rgba(255,166,0,.38);border-radius:12px;background:rgba(255,166,0,.10);display:flex;align-items:flex-start;gap:12px;color:inherit}
+.sfv-message-only-notice[hidden]{display:none!important}
+.sfv-message-only-notice p{margin:0;line-height:1.55;font:inherit}
+.sfv-message-only-icon{display:inline-grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:#ff9f1a;color:#111;font-weight:800}
+.sfv-message-only-settings textarea{min-height:90px;resize:vertical}
+
+/* GRFuel Manager 4.3.16: radio-option availability override controls. */
+.sfv-message-only-settings{border:1px solid rgba(99,91,255,.32)!important;background:rgba(99,91,255,.055);padding:16px!important;border-radius:12px}
+.sfv-message-only-settings legend{display:flex;align-items:center;gap:7px;padding:0 7px;font-weight:750;color:#3f36c8}
+.sfv-message-only-settings .dashicons{font-size:18px;width:18px;height:18px}
+.sfv-message-only-intro{grid-column:1/-1;margin:0 0 2px;color:#647089;line-height:1.5}
+.sfv-message-only-toggle{grid-column:1/-1}
+.sfv-visible-control-label{display:block;margin:0 0 7px;font-weight:650;color:#26324d}
+.sfv-message-only-settings .sfv-control-select{align-self:start}
+
+/* 4.3.17 — explicit availability override controls. */
+.sfv-message-only-heading{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.sfv-message-only-heading strong{font-size:14px}
+.sfv-message-only-badge{display:inline-flex;align-items:center;min-height:26px;padding:3px 9px;border-radius:999px;background:rgba(99,91,255,.11);color:#4b43c7;font-size:12px;font-weight:700}
+.sfv-message-only-settings select:disabled,.sfv-message-only-settings textarea:disabled{opacity:.55;cursor:not-allowed}

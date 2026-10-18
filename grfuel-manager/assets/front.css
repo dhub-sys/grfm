@@ -1,0 +1,230 @@
+.sfv-form{display:block}.sfv-grid{margin-top:0}.sfv-field{min-width:0}.sfv-field textarea{min-height:8rem}.sfv-hp{position:absolute!important;left:-10000px!important;width:1px!important;height:1px!important;overflow:hidden!important}.sfv-notice{padding:.8rem 1rem;margin-bottom:1rem;border:1px solid}.sfv-success{border-color:#16833c}.sfv-error{border-color:#b32d2e}.sfv-form>.cf-turnstile,.sfv-form>.uk-button{margin-top:1rem}.sfv-field[hidden]{display:none!important}
+.sfv-radio-group{margin:0;padding:0;border:0}.sfv-radio-options{display:flex;flex-wrap:wrap;gap:10px 18px}.sfv-radio-options label{display:inline-flex;align-items:center;gap:6px}
+
+/* v1.8.5 — accessible hidden labels */
+.sfv-visually-hidden{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  padding:0!important;
+  margin:-1px!important;
+  overflow:hidden!important;
+  clip:rect(0,0,0,0)!important;
+  white-space:nowrap!important;
+  border:0!important;
+}
+
+/* v1.10.5 — Dazzlink styled jQuery UI datepicker */
+.sfv-date-wrap{position:relative}.sfv-date-wrap .sfv-datepicker{padding-right:44px!important;cursor:default}.sfv-date-icon{position:absolute;right:14px;top:50%;width:19px;height:19px;transform:translateY(-50%);pointer-events:none;opacity:.72;background-color:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3C/svg%3E") center/contain no-repeat;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='5' width='18' height='16' rx='2'/%3E%3Cpath d='M16 3v4M8 3v4M3 10h18'/%3E%3C/svg%3E") center/contain no-repeat}
+#ui-datepicker-div.ui-datepicker{display:none;z-index:999999!important;width:320px;max-width:calc(100vw - 24px);padding:15px;background:#fff;border:1px solid #dfe5df;border-radius:14px;box-shadow:0 16px 42px rgba(15,23,42,.18);font-family:inherit;box-sizing:border-box}
+#ui-datepicker-div.ui-datepicker[style*="display: block"]{display:block}
+.ui-datepicker .ui-datepicker-header{position:relative;display:flex;align-items:center;justify-content:center;min-height:38px;margin:0 0 10px;padding:0 40px;background:transparent;border:0}.ui-datepicker .ui-datepicker-title{display:flex;gap:6px;align-items:center;font-weight:700;line-height:1.2}.ui-datepicker .ui-datepicker-title select{width:auto;min-height:34px;margin:0;padding:4px 26px 4px 9px;border:1px solid #dfe5df;border-radius:7px;background:#fff;font:inherit;font-size:13px}.ui-datepicker .ui-datepicker-prev,.ui-datepicker .ui-datepicker-next{position:absolute;top:1px;width:34px;height:34px;border:1px solid transparent;border-radius:8px;cursor:pointer;text-indent:-9999px}.ui-datepicker .ui-datepicker-prev{left:0}.ui-datepicker .ui-datepicker-next{right:0}.ui-datepicker .ui-datepicker-prev:hover,.ui-datepicker .ui-datepicker-next:hover{border-color:#dfe5df;background:#f5f7f5}.ui-datepicker .ui-datepicker-prev:after,.ui-datepicker .ui-datepicker-next:after{content:"";position:absolute;top:11px;width:9px;height:9px;border-top:2px solid #34423a;border-right:2px solid #34423a}.ui-datepicker .ui-datepicker-prev:after{left:13px;transform:rotate(-135deg)}.ui-datepicker .ui-datepicker-next:after{right:13px;transform:rotate(45deg)}
+.ui-datepicker .ui-datepicker-calendar{width:100%;margin:0;border-collapse:separate;border-spacing:2px;table-layout:fixed}.ui-datepicker .ui-datepicker-calendar th{padding:5px 1px;color:#7a857f;font-size:11px;font-weight:700;text-transform:none}.ui-datepicker .ui-datepicker-calendar td{padding:0;text-align:center}.ui-datepicker .ui-datepicker-calendar td a,.ui-datepicker .ui-datepicker-calendar td span{display:flex;align-items:center;justify-content:center;min-height:36px;padding:0;border:0;border-radius:8px;background:transparent;color:#26322b;text-decoration:none;font-size:13px;box-sizing:border-box}.ui-datepicker .ui-datepicker-calendar td a:hover{background:#eaf5eb;color:#22652a}.ui-datepicker .ui-datepicker-calendar .ui-datepicker-today a{box-shadow:inset 0 0 0 1px #72a77a}.ui-datepicker .ui-datepicker-calendar .ui-datepicker-current-day a{background:#2e7d32!important;color:#fff!important;box-shadow:0 5px 13px rgba(46,125,50,.22)}.ui-datepicker .ui-datepicker-other-month a{color:#a8b0ab}.ui-datepicker .ui-datepicker-unselectable span{color:#c7ccc9;background:#f8f9f8;cursor:not-allowed}.ui-datepicker .ui-datepicker-buttonpane{display:none}
+@media(max-width:480px){#ui-datepicker-div.ui-datepicker{width:calc(100vw - 24px);left:12px!important}.ui-datepicker .ui-datepicker-calendar td a,.ui-datepicker .ui-datepicker-calendar td span{min-height:38px}}
+.sfv-price-calculator{padding:16px 18px;border:1px solid var(--sfv-field-border,#dfe3ea);border-radius:var(--sfv-field-radius,8px);background:var(--sfv-field-bg,#fff)}
+.sfv-price-line{display:flex;align-items:center;justify-content:space-between;gap:16px}.sfv-price-total{font-size:1.35em}.sfv-price-breakdown{margin-top:5px;font-size:.88em;opacity:.72}.sfv-dynamic-price{font-variant-numeric:tabular-nums}
+
+/* Price calculator alignment */
+.sfv-price-calculator{box-sizing:border-box;min-height:var(--sfv-field-height,40px);padding:0 12px;display:flex;flex-direction:column;justify-content:center;margin:0}
+.sfv-price-line{min-height:var(--sfv-field-height,40px);gap:10px}
+.sfv-price-line-no-label{justify-content:flex-end}
+.sfv-price-breakdown:empty{display:none}
+.sfv-price-breakdown:not(:empty){padding-bottom:8px}
+
+/* v1.12.3 — price calculator grid alignment */
+.sfv-price-calculator-cell{box-sizing:border-box;min-width:0}
+.sfv-price-calculator-cell>.sfv-price-calculator{box-sizing:border-box;width:100%;max-width:100%;min-width:0;margin:0;overflow:hidden}
+.sfv-price-calculator-cell[hidden]{display:none!important}
+
+
+/* Compact price calculator row — v1.12.4 */
+.sfv-price-calculator-cell{align-self:start}
+.sfv-price-calculator-cell>.sfv-price-calculator{
+  width:100%!important;
+  min-height:var(--sfv-field-height,40px)!important;
+  height:var(--sfv-field-height,40px)!important;
+  padding:0 14px!important;
+  margin:0!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+}
+.sfv-price-calculator .sfv-price-line{
+  width:100%!important;
+  min-height:0!important;
+  height:auto!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:12px!important;
+  margin:0!important;
+  padding:0!important;
+  line-height:1.2!important;
+}
+.sfv-price-unit{
+  min-width:0;
+  font-size:11px;
+  font-weight:400;
+  line-height:1.2;
+  opacity:.7;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.sfv-price-total{
+  flex:0 0 auto;
+  font-size:inherit!important;
+  font-weight:600;
+  line-height:1.2;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums;
+}
+.sfv-price-breakdown{display:none!important}
+
+
+/* Alpha 3: visual units for numeric quantity fields. */
+.sfv-input-affix{position:relative!important;display:block!important;width:100%!important;min-width:0;line-height:1}
+.sfv-input-affix .uk-input{display:block!important;width:100%!important;height:var(--sfv-field-height,40px)!important;min-height:var(--sfv-field-height,40px)!important;margin:0!important;padding-right:4rem!important;box-sizing:border-box!important}
+.sfv-input-affix>.sfv-input-suffix{position:absolute!important;z-index:2;top:0!important;right:0!important;bottom:0!important;width:auto!important;height:auto!important;min-width:3rem;display:flex!important;align-items:center!important;justify-content:center!important;margin:0!important;padding:0 .8rem!important;white-space:nowrap;line-height:1!important;color:var(--sfv-field-color,#4b5563);font:inherit;font-size:.88em;pointer-events:none;border-left:1px solid color-mix(in srgb,var(--sfv-field-border,#dfe3ea) 70%,transparent);box-sizing:border-box!important}
+
+
+/* Alpha 8: calculator empty state and exact date/input alignment. */
+.sfv-price-calculator.sfv-price-is-placeholder .sfv-price-line{justify-content:flex-start!important}
+.sfv-price-calculator.sfv-price-is-placeholder .sfv-price-unit{max-width:100%;font-size:inherit;opacity:.58;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sfv-price-calculator.sfv-price-is-placeholder .sfv-price-total:empty{display:none}
+.sfv-date-wrap{display:block!important;width:100%!important;min-width:0!important;line-height:1!important}
+.sfv-date-wrap .sfv-datepicker{
+  display:block!important;
+  width:100%!important;
+  height:var(--sfv-field-height,40px)!important;
+  min-height:var(--sfv-field-height,40px)!important;
+  max-height:var(--sfv-field-height,40px)!important;
+  margin:0!important;
+  padding-top:0!important;
+  padding-bottom:0!important;
+  padding-left:10px!important;
+  padding-right:44px!important;
+  line-height:var(--sfv-field-height,40px)!important;
+  box-sizing:border-box!important;
+  vertical-align:top!important;
+}
+
+.grfuel-public-chart{padding:20px;border:1px solid #e5e7eb;border-radius:16px;background:#fff;box-shadow:0 12px 30px rgba(15,23,42,.06)}.grfuel-public-chart-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:12px}.grfuel-public-chart-head small,.grfuel-public-chart-head strong{display:block}.grfuel-public-chart-head small{color:#94a3b8;font-size:11px;text-transform:none;letter-spacing:.09em}.grfuel-public-chart-head strong{margin-top:3px;color:#172033;font-size:18px}.grfuel-public-chart-head>span{color:#172033;font-size:20px;font-weight:800}.grfuel-public-chart .grfuel-price-chart{color:#2563eb}.grfuel-public-chart .grfuel-price-chart.is-up{color:#e11d48}.grfuel-public-chart .grfuel-price-chart.is-down{color:#059669}.grfuel-public-chart svg{display:block;width:100%;height:auto}.grfuel-public-chart .grfuel-chart-line{fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round}.grfuel-public-chart .grfuel-chart-area{fill:url(#grfuel-chart-fill);stroke:none}.grfuel-public-chart .grfuel-chart-scale{display:flex;justify-content:space-between;color:#94a3b8;font-size:10px}.grfuel-public-chart .grfuel-chart-empty{display:grid;place-items:center;min-height:140px;color:#94a3b8;border:1px dashed #dbe2ea;border-radius:12px;background:#f8fafc;text-align:center}@media(max-width:600px){.grfuel-public-chart-head{align-items:flex-start;flex-direction:column}.grfuel-public-chart-head>span{font-size:17px}}
+
+/* Interactive public price chart controls */
+.grfuel-chart-controls{display:flex;align-items:end;gap:10px;margin:0 0 15px;padding:12px;border:1px solid #e5e7eb;border-radius:12px;background:#f8fafc}.grfuel-chart-controls label{display:grid;gap:5px;color:#475569;font-size:11px;font-weight:750}.grfuel-chart-controls label>div{display:flex;align-items:center;border:1px solid #dbe3ee;border-radius:9px;background:#fff}.grfuel-chart-controls input{width:100px;min-height:38px;padding:0 10px;border:0;background:transparent;box-shadow:none}.grfuel-chart-controls label>div>span{padding:0 9px;color:#64748b;font-size:11px}.grfuel-chart-controls button{min-height:40px;padding:0 14px;border:0;border-radius:9px;background:#2563eb;color:#fff;font-weight:750;cursor:pointer}.grfuel-chart-controls button:disabled{opacity:.55;cursor:wait}.grfuel-chart-stage{min-height:120px}@media(max-width:600px){.grfuel-chart-controls{align-items:stretch;flex-direction:column}.grfuel-chart-controls input{width:100%}.grfuel-chart-controls button{width:100%}}
+
+
+/* alpha.12 — YOOtheme-safe animation and readable mobile chart scale */
+.grfuel-price-chart{box-sizing:border-box;width:100%;max-width:100%;margin-top:14px;padding:14px;border:1px solid #e5eaf2;border-radius:16px;background:linear-gradient(180deg,#fff 0%,#f8fbff 100%);overflow:hidden}
+.grfuel-chart-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.grfuel-chart-summary span{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:1px solid #e7edf5;border-radius:11px;background:rgba(255,255,255,.82)}
+.grfuel-chart-summary small{min-width:0;color:#8490a4;font-size:9px;line-height:1.25;text-transform:none;letter-spacing:.045em}
+.grfuel-chart-summary strong{display:inline-flex;flex:0 0 auto;align-items:baseline;gap:4px;color:#182235;font-size:13px;line-height:1;font-variant-numeric:tabular-nums;white-space:nowrap}
+.grfuel-chart-summary strong em{font:inherit;font-size:.82em;font-style:normal;color:#64748b}
+.grfuel-chart-scroll{width:100%;max-width:100%;overflow-x:auto;overflow-y:hidden;overscroll-behavior-inline:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+.grfuel-chart-scroll:focus{outline:2px solid currentColor;outline-offset:2px;border-radius:8px}
+.grfuel-chart-scroll svg{display:block;width:100%;min-width:620px;height:auto}
+.grfuel-chart-grid line{stroke:#dbe4f0;stroke-width:1;stroke-dasharray:4 6}
+.grfuel-chart-axis-labels text{fill:#8b98aa;font-size:9px}
+.grfuel-chart-line{fill:none;stroke:currentColor;stroke-width:4;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:var(--grfuel-line-length,2400);stroke-dashoffset:var(--grfuel-line-length,2400)}
+.grfuel-chart-area{stroke:none;opacity:0}
+.grfuel-chart-point circle{fill:#fff;stroke:currentColor;stroke-width:4;cursor:help;transform-box:fill-box;transform-origin:center;opacity:0;transform:scale(.25)}
+.grfuel-price-chart.is-animated .grfuel-chart-line{animation:grfuel-draw-line 1.05s cubic-bezier(.22,.8,.28,1) forwards}
+.grfuel-price-chart.is-animated .grfuel-chart-area{animation:grfuel-fade-area .65s ease .55s forwards}
+.grfuel-price-chart.is-animated .grfuel-chart-point circle{animation:grfuel-pop-point .42s cubic-bezier(.2,1.55,.4,1) forwards;animation-delay:calc(.62s + var(--grfuel-point-delay,0ms))}
+.grfuel-chart-point circle:hover,.grfuel-chart-point circle:focus{transform:scale(1.45);fill:currentColor;outline:none}
+@keyframes grfuel-draw-line{to{stroke-dashoffset:0}}
+@keyframes grfuel-fade-area{to{opacity:1}}
+@keyframes grfuel-pop-point{to{opacity:1;transform:scale(1)}}
+@media(max-width:760px){
+  .grfuel-chart-summary{grid-template-columns:1fr}
+  .grfuel-chart-summary span{padding:9px 11px}
+  .grfuel-chart-scroll{padding-bottom:5px}
+  .grfuel-chart-scroll svg{width:var(--grfuel-mobile-chart-width,900px);min-width:var(--grfuel-mobile-chart-width,900px)}
+  .grfuel-chart-axis-labels text{font-size:10px}
+  .grfuel-chart-point circle{r:6px}
+}
+@media(prefers-reduced-motion:reduce){
+  .grfuel-chart-line{stroke-dashoffset:0!important;animation:none!important}
+  .grfuel-chart-area,.grfuel-chart-point circle{opacity:1!important;transform:none!important;animation:none!important}
+}
+
+
+/* alpha.13 — touch-friendly chart point tooltips */
+.grfuel-price-chart{position:relative}
+.grfuel-chart-point circle{touch-action:manipulation;-webkit-tap-highlight-color:transparent}
+.grfuel-chart-point circle.is-active{fill:currentColor;transform:scale(1.45)}
+.grfuel-chart-tooltip{position:absolute;z-index:8;max-width:190px;padding:8px 10px;border:1px solid rgba(15,23,42,.12);border-radius:9px;background:#172033;color:#fff;font-size:12px;font-weight:700;line-height:1.25;white-space:nowrap;box-shadow:0 8px 22px rgba(15,23,42,.22);opacity:0;pointer-events:none;transform:translate(-50%,-100%) translateY(-8px);transition:opacity .16s ease,transform .16s ease}
+.grfuel-chart-tooltip::after{content:"";position:absolute;left:50%;top:100%;width:9px;height:9px;background:#172033;transform:translate(-50%,-50%) rotate(45deg)}
+.grfuel-chart-tooltip.is-visible{opacity:1;transform:translate(-50%,-100%) translateY(-12px)}
+@media(max-width:600px){.grfuel-chart-point circle{cursor:pointer}.grfuel-chart-tooltip{font-size:13px;padding:9px 11px}}
+
+
+/* alpha.17 — paged touch-first line chart for mobile */
+.grfuel-public-mobile-chart{box-sizing:border-box;width:100%;padding:15px;border:1px solid #e5e7eb;border-radius:16px;background:#fff;box-shadow:0 10px 26px rgba(15,23,42,.06)}
+.grfuel-public-mobile-chart-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.grfuel-public-mobile-chart-head small,.grfuel-public-mobile-chart-head strong{display:block}
+.grfuel-public-mobile-chart-head small{color:#94a3b8;font-size:10px;letter-spacing:.06em}
+.grfuel-public-mobile-chart-head strong{margin-top:3px;color:#172033;font-size:17px}
+.grfuel-public-mobile-chart-head>span{color:#172033;font-size:15px;font-weight:800;text-align:right;white-space:nowrap}
+.grfuel-mobile-price-chart{position:relative;color:#2563eb}
+.grfuel-mobile-price-chart.is-up{color:#e11d48}.grfuel-mobile-price-chart.is-down{color:#059669}
+.grfuel-mobile-chart-summary{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.grfuel-mobile-chart-summary span{display:grid;gap:3px;padding:10px 11px;border:1px solid #e7edf5;border-radius:11px;background:#f8fafc}
+.grfuel-mobile-chart-summary small{color:#8490a4;font-size:10px}.grfuel-mobile-chart-summary strong{display:flex;align-items:baseline;gap:4px;color:#182235;font-size:15px;font-variant-numeric:tabular-nums}.grfuel-mobile-chart-summary em{font:inherit;font-size:.82em;font-style:normal;color:#64748b}
+.grfuel-mobile-chart-pages{position:relative}.grfuel-mobile-chart-page{position:relative;width:100%;overflow:visible}.grfuel-mobile-chart-page[hidden]{display:none!important}
+.grfuel-mobile-chart-page svg{display:block;width:100%;height:auto;overflow:visible;touch-action:manipulation}
+.grfuel-mobile-chart-period{margin:0 0 3px;color:#64748b;font-size:11px;font-weight:700;text-align:center}
+.grfuel-mobile-chart-page .grfuel-chart-grid line{stroke:#e7edf3;stroke-width:1}
+.grfuel-mobile-chart-page .grfuel-chart-axis-labels text{fill:#748197;font-size:9px;font-weight:600}
+.grfuel-mobile-chart-page .grfuel-chart-line{fill:none;stroke:currentColor;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.grfuel-mobile-chart-page .grfuel-chart-area{stroke:none}
+.grfuel-mobile-chart-page .grfuel-chart-point circle{fill:#fff;stroke:currentColor;stroke-width:3;cursor:pointer;transition:r .18s ease,fill .18s ease}
+.grfuel-mobile-chart-page .grfuel-chart-point circle.is-active{r:8;fill:currentColor}
+.grfuel-mobile-chart-page .grfuel-chart-tooltip{position:absolute;z-index:4;min-width:135px;max-width:190px;padding:7px 9px;border-radius:9px;background:#172033;color:#fff;font-size:11px;font-weight:700;line-height:1.35;text-align:center;pointer-events:none;opacity:0;transform:translate(-50%,-100%) translateY(-8px);transition:opacity .16s ease;white-space:nowrap}
+.grfuel-mobile-chart-page .grfuel-chart-tooltip.is-visible{opacity:1}
+.grfuel-mobile-chart-nav{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;gap:8px;margin-top:5px}
+.grfuel-mobile-chart-nav button{display:grid;place-items:center;width:42px;height:38px;padding:0;border:1px solid #dbe3ed;border-radius:10px;background:#fff;color:#172033;font-size:25px;line-height:1;cursor:pointer}
+.grfuel-mobile-chart-nav button:disabled{opacity:.35;cursor:default}.grfuel-mobile-chart-nav span{color:#64748b;font-size:12px;font-weight:700;text-align:center}
+.grfuel-mobile-chart-hint{display:block;margin-top:8px;color:#8490a4;font-size:10px;line-height:1.4;text-align:center}
+.grfuel-mobile-chart-empty{display:grid;gap:4px;padding:28px 16px;border:1px dashed #dbe2ea;border-radius:12px;background:#f8fafc;color:#64748b;text-align:center}.grfuel-mobile-chart-empty small{color:#94a3b8}
+@media(max-width:380px){.grfuel-public-mobile-chart{padding:12px}.grfuel-public-mobile-chart-head{display:grid}.grfuel-public-mobile-chart-head>span{text-align:left}.grfuel-mobile-chart-summary{gap:6px}.grfuel-mobile-chart-page .grfuel-chart-axis-labels text{font-size:8.5px}}
+
+/* GRFuel Manager 4.2.0 chart themes */
+.grfuel-public-chart.is-transparent,.grfuel-public-mobile-chart.is-transparent{background:transparent!important;border-color:currentColor!important;box-shadow:none!important;color:inherit}
+.grfuel-public-chart.is-transparent .grfuel-price-chart,.grfuel-public-mobile-chart.is-transparent .grfuel-price-chart{background:transparent!important;border-color:color-mix(in srgb,currentColor 22%,transparent)!important}
+.grfuel-public-chart.is-transparent .grfuel-chart-empty,.grfuel-public-mobile-chart.is-transparent .grfuel-mobile-chart-empty{background:transparent!important}
+.grfuel-public-chart.is-transparent .grfuel-public-chart-head strong,.grfuel-public-chart.is-transparent .grfuel-public-chart-head>span,.grfuel-public-mobile-chart.is-transparent .grfuel-public-mobile-chart-head strong,.grfuel-public-mobile-chart.is-transparent .grfuel-public-mobile-chart-head>span{color:inherit!important}
+.grfuel-public-chart.is-transparent .grfuel-chart-axis-labels,.grfuel-public-mobile-chart.is-transparent .grfuel-chart-axis-labels{fill:currentColor!important;opacity:.72}
+.grfuel-public-chart.is-transparent .grfuel-chart-grid,.grfuel-public-mobile-chart.is-transparent .grfuel-chart-grid{stroke:currentColor!important;opacity:.16}
+.grfuel-public-chart.is-light,.grfuel-public-mobile-chart.is-light{background:#fff;color:#172033}
+
+
+/* GRFuel Manager 4.2.2 — animated chart tooltip lettering */
+.grfuel-chart-tooltip .grfuel-tooltip-letter{display:inline-block;opacity:0;transform:translateY(7px) scale(.94);filter:blur(3px)}
+.grfuel-chart-tooltip.is-visible .grfuel-tooltip-letter{animation:grfuel-tooltip-letter-in .38s cubic-bezier(.2,.85,.25,1) forwards;animation-delay:calc(var(--grfuel-letter-index) * 18ms)}
+@keyframes grfuel-tooltip-letter-in{60%{opacity:1;filter:blur(0);transform:translateY(-1px) scale(1.02)}to{opacity:1;filter:blur(0);transform:translateY(0) scale(1)}}
+@media(prefers-reduced-motion:reduce){.grfuel-chart-tooltip .grfuel-tooltip-letter{opacity:1;filter:none;transform:none;animation:none!important}}
+
+/* GRFuel Manager 4.2.5 — smooth tooltip content animation */
+.grfuel-chart-tooltip{min-width:116px;text-align:left;will-change:opacity,transform}
+.grfuel-chart-tooltip .grfuel-tooltip-title,.grfuel-chart-tooltip .grfuel-tooltip-value{display:block}
+.grfuel-chart-tooltip .grfuel-tooltip-title{font-size:11px;font-weight:700;opacity:.72}
+.grfuel-chart-tooltip .grfuel-tooltip-value{margin-top:2px;font-size:14px;font-weight:800;letter-spacing:.01em}
+.grfuel-chart-tooltip.is-visible .grfuel-tooltip-title{animation:grfuel-tooltip-title-in .28s ease both}
+.grfuel-chart-tooltip.is-visible .grfuel-tooltip-value{animation:grfuel-tooltip-value-in .34s cubic-bezier(.2,.85,.25,1) both}
+@keyframes grfuel-tooltip-title-in{from{opacity:0;transform:translateY(4px)}to{opacity:.72;transform:none}}
+@keyframes grfuel-tooltip-value-in{from{opacity:0;transform:translateY(7px) scale(.96)}to{opacity:1;transform:none}}
+@media(prefers-reduced-motion:reduce){.grfuel-chart-tooltip.is-visible .grfuel-tooltip-title,.grfuel-chart-tooltip.is-visible .grfuel-tooltip-value{animation:none!important}}
+
+
+/* GRFuel Manager 4.3.14: informational-only radio option. */
+.sfv-message-only-hidden{display:none!important}
+.sfv-message-only-notice{margin-top:18px;padding:18px 20px;border:1px solid rgba(255,166,0,.38);border-radius:12px;background:rgba(255,166,0,.10);display:flex;align-items:flex-start;gap:12px;color:inherit}
+.sfv-message-only-notice[hidden]{display:none!important}
+.sfv-message-only-notice p{margin:0;line-height:1.55;font:inherit}
+.sfv-message-only-icon{display:inline-grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:50%;background:#ff9f1a;color:#111;font-weight:800}
+.sfv-message-only-settings textarea{min-height:90px;resize:vertical}

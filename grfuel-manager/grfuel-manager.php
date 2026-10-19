@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GRFuel Manager
  * Description: Fuel order forms, daily product prices, submissions, exports and order notifications for YOOtheme.
- * Version: 4.5.2
+ * Version: 4.5.3
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Dazzlink
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class SFV_Plugin {
-    private const VERSION = '4.5.2';
+    private const VERSION = '4.5.3';
     private const PRODUCT_NAME = 'GRFuel Manager';
     private const TAGLINE = 'Fuel pricing and orders, under control.';
     private const CPT = 'sfv_form';
@@ -3218,8 +3218,13 @@ final class SFV_Plugin {
         };
         $choice = static function( $value, array $allowed, $fallback ) { $value = sanitize_key( $value ); return in_array( $value, $allowed, true ) ? $value : $fallback; };
         $range = static function( $value, $min, $max, $fallback ) { $value = absint( $value ); return $value >= $min && $value <= $max ? $value : $fallback; };
-        $daily_prices = array();
-        foreach ( array_slice( (array) ( $input['daily_prices'] ?? array() ), 0, 20 ) as $row ) {
+        $input = is_array( $input ) ? $input : array();
+        // The Settings screen does not post the products or chart options (they live on
+        // Τιμές Ημέρας), so keep the stored values unless the submission carries them.
+        $has_catalog = array_key_exists( 'daily_prices', $input );
+        $has_chart = array_key_exists( 'chart_default_days', $input );
+        $daily_prices = $has_catalog ? array() : (array) ( $defaults['daily_prices'] ?? array() );
+        foreach ( $has_catalog ? array_slice( (array) $input['daily_prices'], 0, 20 ) : array() as $row ) {
             if ( ! is_array( $row ) ) continue;
             $name = mb_substr( sanitize_text_field( $row['name'] ?? '' ), 0, 100 );
             $slug = sanitize_title( $row['slug'] ?? $name );
@@ -3227,7 +3232,6 @@ final class SFV_Plugin {
             $unit = mb_substr( sanitize_text_field( $row['unit'] ?? 'λίτρο' ), 0, 40 );
             if ( '' !== $name && '' !== $slug ) $daily_prices[] = array( 'name' => $name, 'slug' => $slug, 'price' => number_format( $price, 3, '.', '' ), 'unit' => $unit ?: 'λίτρο' );
         }
-        $this->record_daily_price_history( (array) ( $defaults['daily_prices'] ?? array() ), $daily_prices );
         $stored_settings = (array) get_option( self::OPTION, array() );
         $submitted_secret_key = trim( (string) ( $input['secret_key'] ?? '' ) );
         $turnstile_secret_key = '' !== $submitted_secret_key ? sanitize_text_field( $submitted_secret_key ) : sanitize_text_field( $stored_settings['secret_key'] ?? '' );
@@ -3294,10 +3298,10 @@ final class SFV_Plugin {
             'onesignal_app_id' => sanitize_text_field( $input['onesignal_app_id'] ?? '' ),
             'onesignal_api_key' => $onesignal_api_key,
             'preview_theme' => 'dark' === sanitize_key( $input['preview_theme'] ?? 'light' ) ? 'dark' : 'light',
-            'chart_default_days' => max( 7, min( 3650, absint( $input['chart_default_days'] ?? 30 ) ) ),
-            'chart_max_days' => max( 7, min( 3650, absint( $input['chart_max_days'] ?? 365 ) ) ),
-            'chart_frontend_controls' => empty( $input['chart_frontend_controls'] ) ? 0 : 1,
-            'chart_background' => 'light' === sanitize_key( $input['chart_background'] ?? 'transparent' ) ? 'light' : 'transparent',
+            'chart_default_days' => max( 7, min( 3650, absint( $has_chart ? $input['chart_default_days'] : ( $defaults['chart_default_days'] ?? 30 ) ) ) ),
+            'chart_max_days' => max( 7, min( 3650, absint( $has_chart ? ( $input['chart_max_days'] ?? 365 ) : ( $defaults['chart_max_days'] ?? 365 ) ) ) ),
+            'chart_frontend_controls' => empty( $has_chart ? ( $input['chart_frontend_controls'] ?? 0 ) : ( $defaults['chart_frontend_controls'] ?? 0 ) ) ? 0 : 1,
+            'chart_background' => 'light' === sanitize_key( $has_chart ? ( $input['chart_background'] ?? 'transparent' ) : ( $defaults['chart_background'] ?? 'transparent' ) ) ? 'light' : 'transparent',
         );
     }
 

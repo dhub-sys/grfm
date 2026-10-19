@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GRFuel Manager
  * Description: Fuel order forms, daily product prices, submissions, exports and order notifications for YOOtheme.
- * Version: 4.5.1
+ * Version: 4.5.2
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Dazzlink
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class SFV_Plugin {
-    private const VERSION = '4.5.1';
+    private const VERSION = '4.5.2';
     private const PRODUCT_NAME = 'GRFuel Manager';
     private const TAGLINE = 'Fuel pricing and orders, under control.';
     private const CPT = 'sfv_form';
@@ -343,12 +343,24 @@ final class SFV_Plugin {
         ?><button type="button" class="grfuel-session-refresh" data-url="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>" data-nonce="<?php echo esc_attr( wp_create_nonce( 'grfuel_refresh_manager_session' ) ); ?>" data-expires="<?php echo esc_attr( $expires ); ?>" data-login-url="<?php echo esc_url( $this->manager_login_url( array( 'notice' => 'otp_required' ) ) ); ?>" title="Ανανέωση διάρκειας συνεδρίας" aria-label="Ανανέωση διάρκειας συνεδρίας"><span class="dashicons dashicons-update"></span><span class="grfuel-session-refresh-label">Ανανέωση</span><time class="grfuel-session-countdown" aria-label="Χρόνος συνεδρίας">--:--:--</time></button><div class="grfuel-session-toast" role="status" aria-live="polite"></div><?php
     }
 
+    private function otp_rate_key( string $login ): string {
+        return 'grfuel_otp_rate_' . hash_hmac( 'sha256', $this->client_ip() . '|' . strtolower( $login ), wp_salt( 'auth' ) );
+    }
+
     private function otp_rate_limited( string $login ): bool {
-        $key = 'grfuel_otp_rate_' . hash_hmac( 'sha256', $this->client_ip() . '|' . strtolower( $login ), wp_salt( 'auth' ) );
-        $count = (int) get_transient( $key );
-        if ( $count >= 5 ) return true;
-        set_transient( $key, $count + 1, 15 * MINUTE_IN_SECONDS );
-        return false;
+        return (int) get_transient( $this->otp_rate_key( $login ) ) >= 5;
+    }
+
+    private function otp_rate_hit( string $login ): void {
+        $key = $this->otp_rate_key( $login );
+        set_transient( $key, (int) get_transient( $key ) + 1, 15 * MINUTE_IN_SECONDS );
+    }
+
+    // A completed login clears the counter for every identifier the user can log in with.
+    private function otp_rate_reset( WP_User $user, string $login = '' ): void {
+        foreach ( array_unique( array_filter( array( $login, $user->user_login, $user->user_email ) ) ) as $identifier ) {
+            delete_transient( $this->otp_rate_key( (string) $identifier ) );
+        }
     }
 
     private function send_otp_email( WP_User $user, string $otp ): bool {
@@ -497,9 +509,11 @@ final class SFV_Plugin {
                     } else {
                         $user = wp_authenticate( $login, $password );
                         if ( is_wp_error( $user ) || ! $user instanceof WP_User || ! $this->manager_user_can_login( $user ) || ! $this->operator_is_approved( $user ) || ! user_can( $user, self::CAPABILITY ) ) {
+                            $this->otp_rate_hit( $login );
                             $message = 'Τα στοιχεία σύνδεσης δεν είναι έγκυρα ή ο λογαριασμός δεν έχει πρόσβαση.';
                         } else {
                             if ( ! $this->otp_enabled() ) {
+                                $this->otp_rate_reset( $user, $login );
                                 wp_set_current_user( $user->ID );
                                 $this->create_otp_session( $user, $remember );
                                 // WordPress admin.php performs its own auth-cookie validation
@@ -527,6 +541,8 @@ final class SFV_Plugin {
                                     'expires' => time() + self::OTP_TTL,
                                 );
                                 set_transient( $this->otp_state_key( $token ), $state, self::OTP_TTL );
+                                // Each code request counts, so a known password cannot trigger unlimited OTP emails.
+                                $this->otp_rate_hit( $login );
                                 $sent = $this->send_otp_email( $user, $otp );
                                 if ( $sent ) {
                                     $step = 'otp';
@@ -572,6 +588,7 @@ final class SFV_Plugin {
                                 // also satisfying WordPress' internal admin auth_redirect().
                                 wp_set_auth_cookie( $user->ID, $remember, is_ssl() );
                                 update_user_meta( $user->ID, 'grfuel_last_otp_login', time() );
+                                $this->otp_rate_reset( $user );
                                 wp_safe_redirect( $this->manager_portal_url() );
                                 exit;
                             }

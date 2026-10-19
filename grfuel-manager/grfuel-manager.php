@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GRFuel Manager
  * Description: Fuel order forms, daily product prices, submissions, exports and order notifications for YOOtheme.
- * Version: 4.5.3
+ * Version: 4.5.4
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Dazzlink
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class SFV_Plugin {
-    private const VERSION = '4.5.3';
+    private const VERSION = '4.5.4';
     private const PRODUCT_NAME = 'GRFuel Manager';
     private const TAGLINE = 'Fuel pricing and orders, under control.';
     private const CPT = 'sfv_form';
@@ -23,6 +23,7 @@ final class SFV_Plugin {
     private const DB_VERSION = '1.1';
     private const DB_OPTION = 'sfv_db_version';
     private const DATA_SNAPSHOT_OPTION = 'grfuel_persistent_catalog_snapshot';
+    private const HISTORY_VERSION_OPTION = 'grfuel_price_history_version';
     private const CAPABILITY = 'grfuel_access_manager';
     private const ADMIN_CAPABILITY = 'grfuel_access_manager';
     private const USER_ADMIN_CAPABILITY = 'manage_options';
@@ -131,7 +132,30 @@ final class SFV_Plugin {
         if ( ! wp_next_scheduled( 'sfv_daily_retention' ) ) {
             wp_schedule_event( time() + HOUR_IN_SECONDS, 'daily', 'sfv_daily_retention' );
         }
+        if ( '1' !== (string) get_option( self::HISTORY_VERSION_OPTION, '' ) ) {
+            $this->normalize_price_history();
+            update_option( self::HISTORY_VERSION_OPTION, '1', false );
+        }
         $this->snapshot_catalog();
+    }
+
+    // Earlier versions could store several entries per day and zero prices; keep the
+    // last price of each day and drop non-positive prices.
+    private function normalize_price_history(): void {
+        $history = $this->price_history();
+        if ( ! $history ) return;
+        foreach ( $history as $slug => $entries ) {
+            $by_day = array();
+            foreach ( (array) $entries as $entry ) {
+                if ( ! is_array( $entry ) || (float) ( $entry['price'] ?? 0 ) <= 0 ) continue;
+                $day = substr( (string) ( $entry['recorded_at'] ?? '' ), 0, 10 );
+                if ( ! preg_match( '/^\d{4}-\d{2}-\d{2}$/', $day ) ) continue;
+                if ( ! isset( $by_day[ $day ] ) || strcmp( (string) $entry['recorded_at'], (string) $by_day[ $day ]['recorded_at'] ) >= 0 ) $by_day[ $day ] = $entry;
+            }
+            ksort( $by_day );
+            $history[ $slug ] = array_values( array_map( static fn( $entry ) => array( 'price' => (float) $entry['price'], 'recorded_at' => substr( (string) $entry['recorded_at'], 0, 10 ) . ' 12:00:00' ), $by_day ) );
+        }
+        update_option( self::PRICE_HISTORY_OPTION, $history, false );
     }
 
     private function snapshot_catalog(): void {
@@ -1795,10 +1819,14 @@ final class SFV_Plugin {
             $slug = sanitize_title( (string) ( $row['slug'] ?? '' ) );
             if ( '' === $slug ) continue;
             $price = (float) ( $row['price'] ?? 0 );
+            if ( $price <= 0 ) continue;
             if ( isset( $old[ $slug ] ) && abs( $old[ $slug ] - $price ) < 0.00001 ) continue;
-            if ( ! isset( $history[ $slug ] ) || ! is_array( $history[ $slug ] ) ) $history[ $slug ] = array();
-            $history[ $slug ][] = array( 'price' => $price, 'recorded_at' => current_time( 'mysql' ) );
-            $history[ $slug ] = array_slice( $history[ $slug ], -730 );
+            // Same rule as the per-product entry form: one price per day, the latest wins.
+            $today = current_time( 'Y-m-d' );
+            $entries = array_values( array_filter( (array) ( $history[ $slug ] ?? array() ), static fn( $entry ) => substr( (string) ( $entry['recorded_at'] ?? '' ), 0, 10 ) !== $today ) );
+            $entries[] = array( 'price' => $price, 'recorded_at' => $today . ' 12:00:00' );
+            usort( $entries, static fn( $a, $b ) => strcmp( (string) $a['recorded_at'], (string) $b['recorded_at'] ) );
+            $history[ $slug ] = array_slice( $entries, -3650 );
             $changed = true;
         }
         if ( $changed ) update_option( self::PRICE_HISTORY_OPTION, $history, false );

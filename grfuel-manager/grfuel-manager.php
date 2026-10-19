@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GRFuel Manager
  * Description: Fuel order forms, daily product prices, submissions, exports and order notifications for YOOtheme.
- * Version: 4.5.5
+ * Version: 4.5.6
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Dazzlink
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class SFV_Plugin {
-    private const VERSION = '4.5.5';
+    private const VERSION = '4.5.6';
     private const PRODUCT_NAME = 'GRFuel Manager';
     private const TAGLINE = 'Fuel pricing and orders, under control.';
     private const CPT = 'sfv_form';
@@ -322,6 +322,7 @@ final class SFV_Plugin {
         $portal_path = untrailingslashit( (string) wp_parse_url( $this->manager_portal_url(), PHP_URL_PATH ) );
         $request_path = untrailingslashit( (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ) );
         if ( $portal_path !== $request_path ) return;
+        $this->redirect_manager_to_https();
         $user = wp_get_current_user();
         if ( ! $user->exists() || ! $this->otp_session_valid( $user ) ) {
             wp_safe_redirect( $this->manager_login_url() );
@@ -338,9 +339,29 @@ final class SFV_Plugin {
         $logout_path = untrailingslashit( (string) wp_parse_url( home_url( '/grfuel-manager-logout/' ), PHP_URL_PATH ) );
         $request_path = untrailingslashit( (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ) );
         if ( $logout_path !== $request_path ) return;
+        $this->redirect_manager_to_https();
         check_admin_referer( 'grfuel_manager_logout' );
         $this->clear_otp_session();
         wp_safe_redirect( $this->manager_login_url( array( 'logged_out' => '1' ) ) );
+        exit;
+    }
+
+    // Over plain http the login sets non-secure cookies that an https wp-admin rejects, and
+    // the https wp-admin frame is refused inside an http portal page (X-Frame-Options:
+    // SAMEORIGIN). Keep the Manager pages on https whenever wp-admin runs on https.
+    private function redirect_manager_to_https(): void {
+        if ( is_ssl() ) return;
+        // Behind a TLS-terminating proxy (e.g. Cloudflare Flexible SSL) PHP sees http while the
+        // visitor is already on https; redirecting there would loop.
+        $forwarded = strtolower( (string) wp_unslash( $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '' ) );
+        $cf_visitor = (string) wp_unslash( $_SERVER['HTTP_CF_VISITOR'] ?? '' );
+        if ( str_contains( $forwarded, 'https' ) || str_contains( $cf_visitor, '"https"' ) ) return;
+        if ( isset( $_GET['grfuel_https'] ) ) return; // Already redirected once: never loop.
+        if ( 'https' !== wp_parse_url( admin_url(), PHP_URL_SCHEME ) && ! force_ssl_admin() ) return;
+        $host = (string) wp_parse_url( home_url(), PHP_URL_HOST );
+        if ( '' === $host ) return;
+        $uri = (string) wp_unslash( $_SERVER['REQUEST_URI'] ?? '/' );
+        wp_safe_redirect( add_query_arg( 'grfuel_https', '1', 'https://' . $host . ( '' !== $uri && '/' === $uri[0] ? $uri : '/' ) ), 302 );
         exit;
     }
 
@@ -510,6 +531,7 @@ final class SFV_Plugin {
         $login_path = untrailingslashit( (string) wp_parse_url( $this->manager_login_url(), PHP_URL_PATH ) );
         $request_path = untrailingslashit( (string) wp_parse_url( wp_unslash( $_SERVER['REQUEST_URI'] ?? '' ), PHP_URL_PATH ) );
         if ( $login_path !== $request_path ) return;
+        $this->redirect_manager_to_https();
 
         $this->send_private_response_headers();
         header( "Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; script-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'" );

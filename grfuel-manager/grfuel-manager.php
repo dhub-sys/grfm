@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GRFuel Manager
  * Description: Fuel order forms, daily product prices, submissions, exports and order notifications for YOOtheme.
- * Version: 4.5.4
+ * Version: 4.5.5
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Dazzlink
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class SFV_Plugin {
-    private const VERSION = '4.5.4';
+    private const VERSION = '4.5.5';
     private const PRODUCT_NAME = 'GRFuel Manager';
     private const TAGLINE = 'Fuel pricing and orders, under control.';
     private const CPT = 'sfv_form';
@@ -268,7 +268,27 @@ final class SFV_Plugin {
         return is_array( $state )
             && (int) ( $state['user_id'] ?? 0 ) === (int) $user->ID
             && time() < (int) ( $state['expires'] ?? 0 )
-            && hash_equals( (string) ( $state['browser'] ?? '' ), $this->otp_browser_hash() );
+            && hash_equals( (string) ( $state['browser'] ?? '' ), $this->otp_browser_hash() )
+            && $this->wordpress_session_matches( $user );
+    }
+
+    // The portal frame is wp-admin, which needs the WordPress login cookie. A Manager
+    // session that outlives it (e.g. after the browser was closed) would send the user to
+    // the WordPress login screen inside the portal, so treat it as expired instead.
+    private function wordpress_session_matches( WP_User $user ): bool {
+        return (int) wp_validate_auth_cookie( '', 'logged_in' ) === (int) $user->ID;
+    }
+
+    private function set_otp_session_cookie( string $token, int $ttl, bool $remember ): void {
+        setcookie( self::OTP_SESSION_COOKIE, $token, array(
+            // Without "remember me" the WordPress cookies are session cookies; match them.
+            'expires' => $remember ? time() + $ttl : 0,
+            'path' => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
+            'domain' => defined( 'COOKIE_DOMAIN' ) ? (string) COOKIE_DOMAIN : '',
+            'secure' => is_ssl(),
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ) );
     }
 
     private function manager_session_seconds(): int {
@@ -282,17 +302,9 @@ final class SFV_Plugin {
         } catch ( Throwable $error ) {
             return false;
         }
-        unset( $remember );
         $ttl = $this->manager_session_seconds();
-        set_transient( $this->otp_session_key( $token ), array( 'user_id' => (int) $user->ID, 'browser' => $this->otp_browser_hash(), 'expires' => time() + $ttl ), $ttl );
-        setcookie( self::OTP_SESSION_COOKIE, $token, array(
-            'expires' => time() + $ttl,
-            'path' => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/',
-            'domain' => defined( 'COOKIE_DOMAIN' ) ? (string) COOKIE_DOMAIN : '',
-            'secure' => is_ssl(),
-            'httponly' => true,
-            'samesite' => 'Lax',
-        ) );
+        set_transient( $this->otp_session_key( $token ), array( 'user_id' => (int) $user->ID, 'browser' => $this->otp_browser_hash(), 'expires' => time() + $ttl, 'remember' => $remember ), $ttl );
+        $this->set_otp_session_cookie( $token, $ttl, $remember );
         return true;
     }
 
@@ -303,7 +315,7 @@ final class SFV_Plugin {
         $state = get_transient( $this->otp_session_key( $token ) );
         if ( ! is_array( $state ) || time() >= (int) ( $state['expires'] ?? 0 ) || ! hash_equals( (string) ( $state['browser'] ?? '' ), $this->otp_browser_hash() ) ) return;
         $user = get_user_by( 'id', absint( $state['user_id'] ?? 0 ) );
-        if ( $user instanceof WP_User && $this->manager_user_can_login( $user ) && $this->operator_is_approved( $user ) && user_can( $user, self::CAPABILITY ) ) wp_set_current_user( $user->ID );
+        if ( $user instanceof WP_User && $this->manager_user_can_login( $user ) && $this->operator_is_approved( $user ) && user_can( $user, self::CAPABILITY ) && $this->wordpress_session_matches( $user ) ) wp_set_current_user( $user->ID );
     }
 
     public function manager_portal_page(): void {
@@ -353,8 +365,9 @@ final class SFV_Plugin {
             wp_send_json_error( array( 'message' => 'Η συνεδρία έχει λήξει. Συνδεθείτε ξανά.' ), 403 );
         }
         $ttl = $this->manager_session_seconds();
-        set_transient( $this->otp_session_key( $token ), array( 'user_id' => (int) $user->ID, 'browser' => $this->otp_browser_hash(), 'expires' => time() + $ttl ), $ttl );
-        setcookie( self::OTP_SESSION_COOKIE, $token, array( 'expires' => time() + $ttl, 'path' => defined( 'COOKIEPATH' ) && COOKIEPATH ? COOKIEPATH : '/', 'domain' => defined( 'COOKIE_DOMAIN' ) ? (string) COOKIE_DOMAIN : '', 'secure' => is_ssl(), 'httponly' => true, 'samesite' => 'Lax' ) );
+        $remember = ! empty( get_transient( $this->otp_session_key( $token ) )['remember'] );
+        set_transient( $this->otp_session_key( $token ), array( 'user_id' => (int) $user->ID, 'browser' => $this->otp_browser_hash(), 'expires' => time() + $ttl, 'remember' => $remember ), $ttl );
+        $this->set_otp_session_cookie( $token, $ttl, $remember );
         wp_send_json_success( array( 'message' => sprintf( 'Η συνεδρία ανανεώθηκε για %d λεπτά.', (int) ( $ttl / MINUTE_IN_SECONDS ) ), 'expires' => time() + $ttl ) );
     }
 

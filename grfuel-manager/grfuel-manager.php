@@ -2,7 +2,7 @@
 /**
  * Plugin Name: GRFuel Manager
  * Description: Fuel order forms, daily product prices, submissions, exports and order notifications for YOOtheme.
- * Version: 4.5.6
+ * Version: 4.5.7
  * Requires at least: 6.4
  * Requires PHP: 8.0
  * Author: Dazzlink
@@ -14,7 +14,7 @@
 defined( 'ABSPATH' ) || exit;
 
 final class SFV_Plugin {
-    private const VERSION = '4.5.6';
+    private const VERSION = '4.5.7';
     private const PRODUCT_NAME = 'GRFuel Manager';
     private const TAGLINE = 'Fuel pricing and orders, under control.';
     private const CPT = 'sfv_form';
@@ -849,7 +849,14 @@ final class SFV_Plugin {
             ) );
         }
         if ( str_contains( $hook, 'sfv-settings' ) ) wp_enqueue_media();
-        if ( in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) wp_localize_script( 'sfv-admin', 'sfvBuilder', array( 'fieldsLabel' => __( 'Πεδία', 'secure-form-vault' ) ) );
+        if ( in_array( $hook, array( 'post.php', 'post-new.php' ), true ) ) wp_localize_script( 'sfv-admin', 'sfvBuilder', array(
+            'fieldsLabel' => __( 'Πεδία', 'secure-form-vault' ),
+            'dailyPrices' => array_values( array_map( static fn( $product ) => array(
+                'slug' => sanitize_title( (string) ( $product['slug'] ?? '' ) ),
+                'name' => (string) ( $product['name'] ?? '' ),
+                'price' => number_format( (float) ( $product['price'] ?? 0 ), 3, '.', '' ),
+            ), (array) ( $this->settings()['daily_prices'] ?? array() ) ) ),
+        ) );
     }
 
     public function create_form_from_manager(): void {
@@ -998,6 +1005,7 @@ final class SFV_Plugin {
                 'divider_style' => in_array( $divider_style, $divider_styles, true ) ? $divider_style : 'default',
                 'product_field' => sanitize_key( $field['product_field'] ?? '' ),
                 'product_label' => mb_substr( sanitize_text_field( $field['product_label'] ?? 'Πετρέλαιο θέρμανσης' ), 0, 200 ),
+                'daily_price_product' => 'single_price_calculator' === $type ? sanitize_title( (string) ( $field['daily_price_product'] ?? '' ) ) : '',
                 'quantity_field' => sanitize_key( $field['quantity_field'] ?? '' ),
                 'pricing_rows' => $pricing_rows,
                 'currency' => mb_substr( sanitize_text_field( $field['currency'] ?? '€' ), 0, 8 ),
@@ -1149,7 +1157,7 @@ final class SFV_Plugin {
             }
         }
         if ( in_array( $type, array( 'price_calculator', 'single_price_calculator' ), true ) ) {
-            $rows = $this->sanitize_pricing_rows( $field['pricing_rows'] ?? array() );
+            $rows = $this->field_pricing_rows( $field );
             $quantity_field = sanitize_key( $field['quantity_field'] ?? '' );
 
             // Backward-compatible recovery: older alpha forms could lose the stored reference.
@@ -1756,13 +1764,44 @@ final class SFV_Plugin {
         return $clean;
     }
 
+    private function daily_price_for( string $slug ): ?float {
+        $slug = sanitize_title( $slug );
+        if ( '' === $slug ) return null;
+        foreach ( (array) ( $this->settings()['daily_prices'] ?? array() ) as $product ) {
+            if ( $slug !== sanitize_title( (string) ( $product['slug'] ?? '' ) ) ) continue;
+            $price = (float) ( $product['price'] ?? 0 );
+            return $price > 0 ? $price : null;
+        }
+        return null;
+    }
+
+    // Pricing rows as used for display and order totals. A single-product calculator linked
+    // to a daily price takes its base price from Τιμές Ημέρας; quantity tiers keep their
+    // configured difference from the base (base 1.10 / tier 1.08 → daily 1.15 / tier 1.13).
+    private function field_pricing_rows( array $field ): array {
+        $rows = $this->sanitize_pricing_rows( $field['pricing_rows'] ?? array() );
+        if ( 'single_price_calculator' !== sanitize_key( (string) ( $field['type'] ?? '' ) ) ) return $rows;
+        $daily = $this->daily_price_for( (string) ( $field['daily_price_product'] ?? '' ) );
+        if ( null === $daily ) return $rows;
+        if ( ! $rows ) {
+            return array( array( 'product' => trim( (string) ( $field['product_label'] ?? '' ) ) ?: 'Πετρέλαιο θέρμανσης', 'base' => $daily, 'tiers' => array() ) );
+        }
+        $stored_base = (float) $rows[0]['base'];
+        foreach ( $rows[0]['tiers'] as &$tier ) {
+            if ( $stored_base > 0 ) $tier['price'] = max( 0.001, round( $daily + ( (float) $tier['price'] - $stored_base ), 3 ) );
+        }
+        unset( $tier );
+        $rows[0]['base'] = $daily;
+        return $rows;
+    }
+
     private function order_price_details( int $form_id, string $product, float $quantity = 0 ): ?array {
         if ( $quantity <= 0 ) return null;
         $fields = get_post_meta( $form_id, '_sfv_fields', true );
         foreach ( (array) $fields as $field ) {
             $type = sanitize_key( (string) ( $field['type'] ?? '' ) );
             if ( ! in_array( $type, array( 'price_calculator', 'single_price_calculator' ), true ) ) continue;
-            $rows = $this->sanitize_pricing_rows( $field['pricing_rows'] ?? array() );
+            $rows = $this->field_pricing_rows( (array) $field );
             if ( 'single_price_calculator' === $type ) {
                 $fixed_product = trim( (string) ( $field['product_label'] ?? '' ) );
                 $row = null;
@@ -2892,6 +2931,7 @@ final class SFV_Plugin {
                 'divider_style' => in_array( $divider_style, $allowed_divider_styles, true ) ? $divider_style : 'default',
                 'product_field' => sanitize_key( (string) ( $field['product_field'] ?? '' ) ),
                 'product_label' => mb_substr( sanitize_text_field( (string) ( $field['product_label'] ?? '' ) ), 0, 200 ),
+                'daily_price_product' => 'single_price_calculator' === $type ? sanitize_title( (string) ( $field['daily_price_product'] ?? '' ) ) : '',
                 'quantity_field' => sanitize_key( (string) ( $field['quantity_field'] ?? '' ) ),
                 'pricing_rows' => $this->sanitize_pricing_rows( $field['pricing_rows'] ?? array() ),
                 'currency' => mb_substr( sanitize_text_field( (string) ( $field['currency'] ?? '€' ) ), 0, 8 ),

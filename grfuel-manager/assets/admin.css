@@ -1630,3 +1630,5 @@ body.grfuel-sidebar-collapsed.post-php.post-type-sfv_form #wpbody-content>.wrap:
 /* 4.5.4: keep the daily price entry row inside narrow price cards */
 .grfuel-price-history-card{min-width:0}.grfuel-history-entry-row{grid-template-columns:minmax(0,1.15fr) minmax(0,1fr) 40px}.grfuel-history-entry-row label,.grfuel-history-entry-row label>div,.grfuel-history-entry-row input{min-width:0}.grfuel-history-entry-row input[type=date]{padding:0 8px}
 @media(max-width:782px){.grfuel-history-entry-row{grid-template-columns:1fr}}
+/* 4.5.7: daily price link of the single product calculator */
+.sfv-daily-price-link{display:grid;gap:6px;margin:12px 0}.sfv-daily-price-link small{color:#475569;font-size:12px;line-height:1.5}
